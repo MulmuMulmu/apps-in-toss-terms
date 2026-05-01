@@ -1,0 +1,168 @@
+:root {
+  --bg: #f7faf8;
+  --panel: #ffffff;
+  --text: #182235;
+  --muted: #667085;
+  --line: #dbe5df;
+  --brand: #2c7a55;
+  --brand-soft: #e7f5ed;
+  --warn: #9a3412;
+  --warn-soft: #fff4e8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at top left, #e7f5ed 0, transparent 34rem), var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.72;
+}
+
+.page {
+  width: min(920px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 44px 0 72px;
+}
+
+.hero,
+.card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(24, 34, 53, 0.08);
+}
+
+.hero {
+  padding: 32px;
+  margin-bottom: 20px;
+}
+
+.card {
+  padding: 28px;
+  margin-top: 16px;
+}
+
+.eyebrow {
+  color: var(--brand);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 8px 0 8px;
+  font-size: clamp(30px, 7vw, 52px);
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+}
+
+h2 {
+  margin: 0 0 14px;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+h3 {
+  margin: 24px 0 8px;
+  font-size: 17px;
+}
+
+p,
+li {
+  color: var(--muted);
+}
+
+a {
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.nav a,
+.pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  padding: 10px 14px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.notice {
+  border-radius: 18px;
+  background: var(--warn-soft);
+  border: 1px solid #fed7aa;
+  color: var(--warn);
+  padding: 16px 18px;
+}
+
+.notice p {
+  color: var(--warn);
+  margin: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  margin: 14px 0;
+}
+
+th,
+td {
+  text-align: left;
+  vertical-align: top;
+  padding: 13px;
+  border-bottom: 1px solid var(--line);
+}
+
+th {
+  background: #f1f6f3;
+  color: #344054;
+}
+
+tr:last-child td {
+  border-bottom: 0;
+}
+
+.footer {
+  margin-top: 24px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .page {
+    width: min(100% - 24px, 920px);
+    padding-top: 24px;
+  }
+
+  .hero,
+  .card {
+    padding: 22px;
+    border-radius: 20px;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
