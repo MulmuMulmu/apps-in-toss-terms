@@ -1,14 +1,13 @@
-# Mulmumulmu Apps in Toss Terms
+# 물무물무 앱인토스 약관 페이지
 
-Static terms pages for the Mulmumulmu Apps in Toss mini app.
+물무물무 앱인토스 미니앱 약관 등록용 정적 페이지입니다.
 
-> These pages are project draft documents for app review and user notice.
-> They should be reviewed by the project owner or legal advisor before production launch.
+> 이 문서는 앱 심사 및 사용자 고지를 위한 초안입니다.
+> 실제 출시 전 프로젝트 담당자 또는 법률 전문가 검토가 필요합니다.
 
-## Pages
+## 페이지
 
-- `index.html`: Terms index
-- `terms.html`: Terms of Service
-- `marketing.html`: Marketing Information Consent
-- `privacy-optional.html`: Optional Personal Information Collection and Use Consent
-
+- `index.html`: 약관 목록
+- `terms.html`: 서비스 이용약관
+- `marketing.html`: 마케팅 정보 수신 동의
+- `privacy-optional.html`: 선택 개인정보 수집 및 이용 동의
