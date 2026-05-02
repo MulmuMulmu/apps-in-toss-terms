@@ -1,0 +1,35 @@
+.container {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.pageTitle {
+  font-size: 32px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.statGrid {
+  display: flex;
+  gap: 24px;
+  width: 100%;
+}
+
+.bottomGrid {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+@media (max-width: 1200px) {
+  .bottomGrid {
+    flex-direction: column;
+  }
+  
+  .statGrid {
+    flex-wrap: wrap;
+  }
+}

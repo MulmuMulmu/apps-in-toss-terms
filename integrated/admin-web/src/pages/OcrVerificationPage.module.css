@@ -1,0 +1,298 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 80px); /* 사이드바 상단 여백 제외 */
+  padding: 20px;
+  gap: 20px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pageTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.primary {
+  background-color: #4a90e2;
+  color: white;
+}
+
+.primary:hover {
+  background-color: #357abd;
+}
+
+.secondary {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  color: #666;
+}
+
+.secondary:hover {
+  background-color: #f5f5f5;
+}
+
+.mainContent {
+  display: flex;
+  gap: 24px;
+  flex: 1;
+  overflow: auto;
+  min-width: 980px;
+}
+
+.sectionHeader {
+  font-size: 18px;
+  font-weight: 700;
+  color: #444;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #eee;
+}
+
+.imageSection {
+  flex: 0 0 360px;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e9ecef;
+}
+
+.imageWrapper {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: auto;
+  background:
+    linear-gradient(45deg, #f1f4f8 25%, transparent 25%),
+    linear-gradient(-45deg, #f1f4f8 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #f1f4f8 75%),
+    linear-gradient(-45deg, transparent 75%, #f1f4f8 75%);
+  background-color: #fff;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-size: 16px 16px;
+  border-radius: 8px;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+}
+
+.receiptImage {
+  width: 100%;
+  min-width: 280px;
+  max-width: 420px;
+  height: auto;
+  margin: 16px;
+  background-color: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
+}
+
+.dataSection {
+  flex: 1;
+  min-width: 560px;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #dee2e6;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.accuracyWrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+}
+
+.accuracyInput {
+  width: 70px;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #4a90e2;
+  text-align: right;
+  background-color: #fff;
+  transition: all 0.2s;
+  /* 스핀 버튼(화살표) 제거 */
+  -moz-appearance: textfield;
+}
+
+.accuracyInput::-webkit-outer-spin-button,
+.accuracyInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.accuracyInput:focus {
+  border-color: #4a90e2;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.percentSymbol {
+  font-weight: 700;
+  color: #4a90e2;
+  margin-right: 10px;
+}
+
+.accuracyBar {
+  flex: 1;
+  height: 8px;
+  background-color: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.accuracyFill {
+  height: 100%;
+  background-color: #4a90e2;
+  border-radius: 4px;
+}
+
+.infoField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.infoField label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #888;
+}
+
+.infoField input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 15px;
+  background-color: #f8f9fa;
+}
+
+.infoField input:disabled {
+  background-color: #fff;
+  border-color: transparent;
+  padding-left: 0;
+  font-weight: 600;
+}
+
+.itemTableWrapper {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+
+.itemTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.itemTable th {
+  position: sticky;
+  top: 0;
+  background-color: #f8f9fa;
+  padding: 12px;
+  text-align: left;
+  font-size: 13px;
+  color: #666;
+  border-bottom: 1px solid #eee;
+}
+
+.itemTable th:first-child {
+  width: 34%;
+}
+
+.itemTable th:nth-child(2) {
+  width: 34%;
+}
+
+.itemTable th:nth-child(3) {
+  width: 18%;
+}
+
+.itemTable th:nth-child(4) {
+  width: 14%;
+}
+
+.itemTable td {
+  padding: 10px;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.itemTable input {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.itemTable input:disabled {
+  border-color: transparent;
+  background: none;
+  padding-left: 0;
+}
+
+.summary {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 20px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid #eee;
+}
+
+.summary span {
+  font-size: 16px;
+  font-weight: 600;
+  color: #666;
+}
+
+.totalPrice {
+  font-size: 24px !important;
+  font-weight: 800 !important;
+  color: #4a90e2 !important;
+}
+
+.loading, .error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 18px;
+  color: #888;
+}

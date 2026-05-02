@@ -1,0 +1,149 @@
+.container {
+  padding: 40px;
+  background-color: #fff;
+  border-radius: 20px;
+  border: 1px solid #e0e0e0;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.pageTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+}
+
+.controls {
+  display: flex;
+  gap: 16px;
+}
+
+.searchBox {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchInput {
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 40px 10px 16px;
+  font-size: 14px;
+  width: 220px;
+  transition: all 0.2s;
+}
+
+.searchInput:focus {
+  background-color: #fff;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+  outline: none;
+}
+
+.searchIcon {
+  position: absolute;
+  right: 14px;
+  width: 18px;
+  height: 18px;
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.sortSelect {
+  padding: 8px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  background-color: #fff;
+  cursor: pointer;
+  outline: none;
+}
+
+.sortSelect:hover {
+  border-color: #d1d5db;
+}
+
+.noResult {
+  padding: 100px !important;
+  color: #9ca3af;
+  font-size: 16px;
+  text-align: center;
+}
+
+.tableWrapper {
+  border: 1px solid #e0e0e0;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  table-layout: fixed;
+}
+
+.table th {
+  padding: 20px;
+  font-size: 16px;
+  font-weight: 700;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #fcfcfc;
+}
+
+.table td {
+  padding: 20px;
+  font-size: 15px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.row:hover {
+  background-color: #f9fbff;
+  cursor: pointer;
+}
+
+.statusBadge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.wait { background-color: #f3f4f6; color: #666; }
+.pending { background-color: #fff7ed; color: #ea580c; }
+.done { background-color: #f0fdf4; color: #16a34a; }
+
+.actionBtn {
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #4a90e2;
+  background-color: #fff;
+  color: #4a90e2;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.actionBtn:hover {
+  background-color: #4a90e2;
+  color: #fff;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 18px;
+  color: #888;
+}

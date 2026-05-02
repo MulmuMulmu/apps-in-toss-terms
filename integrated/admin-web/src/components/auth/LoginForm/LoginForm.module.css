@@ -1,0 +1,96 @@
+.card {
+  background-color: #fff;
+  padding: 50px 40px;
+  border-radius: 24px;
+  border: 1px solid #ddd;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 420px;
+}
+
+.header {
+  text-align: left;
+  margin-bottom: 40px;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #000;
+  margin: 0;
+  letter-spacing: -1px;
+}
+
+.subtitle {
+  font-size: 20px;
+  font-weight: 900;
+  color: #5191e3;
+  margin: 12px 0 0 0;
+  letter-spacing: 0.5px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.inputGroup {
+  width: 100%;
+}
+
+.input {
+  width: 100%;
+  padding: 14px 18px;
+  border: 1px solid #888;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #333;
+  transition: all 0.2s;
+}
+
+.input::placeholder {
+  color: #999;
+  font-size: 15px;
+}
+
+.input:focus {
+  border-color: #5191e3;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(81, 145, 227, 0.1);
+}
+
+.loginButton {
+  margin-top: 30px;
+  background-color: #5191e3;
+  color: white;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.loginButton:hover {
+  background-color: #3e78c4;
+}
+
+/* 에러 메시지 스타일 유지 */
+.errorMessageBox {
+  background-color: #fff1f0;
+  border: 1px solid #ffa39e;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.errorText {
+  color: #ff4d4f;
+  font-size: 13px;
+  font-weight: 500;
+}

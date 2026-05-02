@@ -1,0 +1,57 @@
+.container {
+  background-color: #ffffff;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  flex: 1;
+}
+
+.sectionTitle {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  color: #333;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card {
+  border: 1px solid #eeeeee;
+  border-radius: 20px;
+  padding: 24px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.reportTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.reporter {
+  font-size: 14px;
+  color: #999;
+}
+
+.status {
+  padding: 6px 16px;
+  border-radius: 12px;
+  font-size: 12px;
+  color: #666;
+  border: 1px solid #ddd;
+}
+
+.done {
+  /* You can add specific styles for completed status if needed */
+}
+
+.pending {
+  /* You can add specific styles for pending status if needed */
+}

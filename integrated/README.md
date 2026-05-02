@@ -5,6 +5,7 @@
 ## 구성
 
 - `frontend-application/`: 사용자 앱 프론트엔드. 앱인토스 WebView 흐름, Cloud Run 배포 설정, 카카오 지도, 배너 광고 연결 포함.
+- `admin-web/`: 관리자 웹 프론트엔드. 운영 대시보드, 신고 처리, 전체 사용자, OCR 검수, 데이터 통계 화면 포함.
 - `backend-main/`: Spring 백엔드. 사용자, 식재료, 나눔, 채팅, 관리자, AI 연동 계약 기준 소스.
 - `ai-service/`: OCR, 소비기한 예측, 레시피 추천 AI 서비스. OCR/추천 컨테이너 분리와 API 계약 기준 소스.
 
