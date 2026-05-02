@@ -6,7 +6,7 @@ ARG VITE_API_BASE_URL=https://sokksik.click
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 COPY package*.json ./
-RUN npm ci --omit=optional
+RUN npm ci
 
 COPY . .
 RUN npm run build
