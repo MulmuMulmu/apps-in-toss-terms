@@ -31,10 +31,10 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
-@Profile("local")
 public class LocalDevConfig {
 
     @Bean
+    @Profile("local")
     public Storage localNoOpStorage() {
         return (Storage) Proxy.newProxyInstance(
                 Storage.class.getClassLoader(),
@@ -44,6 +44,7 @@ public class LocalDevConfig {
     }
 
     @Bean
+    @Profile({"local", "cloudrun-seed"})
     public CommandLineRunner localSeedData(
             UserRepository userRepository,
             IngredientRepository ingredientRepository,
