@@ -14,6 +14,7 @@
 - `assets/logo.png`: 앱인토스 로고 이미지
 - `apps-in-toss-miniapp/`: 앱인토스 Web Framework 미니앱 소스
 - `apps-in-toss/`: 앱 등록용 썸네일, 스크린샷, 캡처 스크립트
+- `integrated/`: 프론트엔드, 백엔드, AI 서버를 함께 묶은 통합 제출용 스냅샷
 
 ## 로고 URL
 

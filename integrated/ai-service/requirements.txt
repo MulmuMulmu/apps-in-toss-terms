@@ -1,0 +1,33 @@
+# PaddleOCR 영수증 식품명 인식 시스템
+# Python 3.8 ~ 3.11 권장
+
+# API 서버
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+
+# PaddlePaddle (CPU 버전, GPU 사용 시 paddlepaddle-gpu로 교체)
+# Keep Cloud Run OCR aligned with the locally verified OCR runtime.
+paddlepaddle==3.2.0
+paddleocr==3.4.1
+
+# 이미지 처리
+Pillow>=10.0.0
+opencv-python>=4.8.0
+
+# 데이터 처리 및 분석
+numpy>=1.22
+pandas>=2.0.0
+
+# 시각화
+matplotlib>=3.7.0
+
+# 선택적 Qwen 보조
+openai>=1.12.0
+python-dotenv>=1.0.0
+
+# 테스트
+pytest>=8.0.0
+
+# Tests
+pytest>=8.0.0

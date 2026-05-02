@@ -1,0 +1,225 @@
+# OCR/Qwen API Specification
+
+> 프로젝트: 영수증 기반 식재료 인식 및 소비기한 계산  
+> 서버: FastAPI  
+> Base URL: `http://{OCR_SERVER_HOST}:8000`
+
+이 문서는 **OCR/Qwen 컨테이너에서 실제로 사용하는 공개 API만** 정리한다.
+
+기준 구현:
+
+- [main.py](C:/Users/USER-PC/Desktop/jp/.cache/AI-Repository-fresh/main.py)
+
+문서 제외 대상:
+
+- `/ai/ocr/refinement/{trace_id}`
+- `/ai/sharing/check`
+- `/ai/quality/metrics`
+
+위 라우트들은 코드에 존재할 수 있지만, 현재 사용자 흐름 기준 핵심 공개 계약에서는 제외한다.
+
+---
+
+## 1. 현재 공개 API
+
+| Method | Endpoint | 설명 |
+|---|---|---|
+| `POST` | `/ai/ocr/analyze` | 영수증 OCR 분석 |
+| `GET`/`POST` | `/ai/ingredient/prediction` | 식재료 소비기한 배치 계산 |
+
+---
+
+## 2. 사용자 흐름 기준 역할
+
+현재 OCR/Qwen 컨테이너는 아래 흐름을 담당한다.
+
+1. 영수증 분석
+2. 식품 1건 소비기한 계산
+3. 백엔드로 전달할 등록 후보 생성
+
+즉 이 컨테이너는 **영수증 등록 전처리와 해석**에 집중한다.
+
+OCR/Qwen 컨테이너는 영수증 상품명을 표준 식재료 후보로 정규화해 `food_items`에 함께 내려준다. 백엔드는 자체 `Ingredient` DB 기준으로 최종 저장을 검증하고, 프론트는 `MAPPED`가 아닌 항목을 그대로 저장하지 않고 사용자 선택/수정 화면으로 보낸다.
+
+---
+
+## 3. API 상세
+
+### `POST /ai/ocr/analyze`
+
+영수증 이미지를 받아 구조화된 분석 결과를 반환한다.
+
+핵심 처리 단계:
+
+1. 전처리
+2. PaddleOCR
+3. bbox 유지 row merge
+4. rule-based receipt parser
+5. 날짜 / 합계 / 품목 검증
+6. `review_required`, `review_reasons`, `scope_classification` 계산
+7. 필요 시 제한적 Qwen rescue
+
+주요 응답 필드:
+
+- `purchased_at`
+- `food_items`
+- `review_required`
+- `review_reasons`
+- `diagnostics`
+
+`food_items` 항목 형식:
+
+- `product_name`: 앱 저장/표시용 이름. 매핑 성공 시 표준 식재료명, 실패 시 원문 상품명
+- `raw_product_name`: 영수증 원문 상품명. 표준명과 다를 때 추적용으로 포함
+- `ingredientId`: AI 기준 표준 재료 ID. 매핑 실패 시 `null` 또는 생략 가능
+- `ingredientName`: 표준 식재료명. 매핑 실패 시 `null` 또는 생략 가능
+- `normalized_name`: 표준 식재료명. 하위 호환용 보조 필드
+- `mapping_status`: `MAPPED`이면 자동 선택 후보, 없거나 `null`이면 사용자 확인 필요
+- `mapping_source`: `receipt_rule_product_mapping`, `normalized_exact_match` 등 내부 매핑 출처
+- `mapping_confidence`: 0~1 범위의 매핑 신뢰도
+- `category`: 8개 공개 카테고리 중 하나
+- `quantity`: 구매 수량. 파싱 실패 시 생략 가능
+
+허용 카테고리:
+
+1. `정육/계란`
+2. `해산물`
+3. `채소/과일`
+4. `유제품`
+5. `쌀/면/빵`
+6. `소스/조미료/오일`
+7. `가공식품`
+8. `기타`
+
+응답 예시:
+
+```json
+{
+  "success": true,
+  "data": {
+    "purchased_at": "2026-03-11",
+    "food_items": [
+      {
+        "product_name": "우유",
+        "raw_product_name": "서울우유 1L",
+        "ingredientName": "우유",
+        "mapping_status": "MAPPED",
+        "category": "유제품",
+        "quantity": 1
+      },
+      {
+        "product_name": "호가든캔330ml",
+        "mapping_status": null,
+        "category": "가공식품",
+        "quantity": 2
+      }
+    ]
+  },
+  "error": null
+}
+```
+
+운영 의미:
+
+- `review_required=false`
+  - 자동 등록 후보
+- `review_required=true`
+  - 프론트에서 수동 수정 화면으로 연결
+- `food_items[].mapping_status != MAPPED`
+  - 표준 식재료로 자동 저장하지 않고 사용자가 제외하거나 백엔드 식재료 검색 결과에서 선택해야 함
+
+### `GET`/`POST /ai/ingredient/prediction`
+
+식재료 목록의 소비기한을 계산한다.
+
+노션 API 명세서의 AI 계약을 기준으로 `purchaseDate`와 `ingredients`를 받는다.
+
+입력 핵심:
+
+- `purchaseDate`
+- `ingredients`
+
+요청 예시:
+
+```json
+{
+  "purchaseDate": "2026-04-09",
+  "ingredients": ["우유", "당근", "상추"]
+}
+```
+
+GET query 예시:
+
+```text
+/ai/ingredient/prediction?purchaseDate=2026-04-09&ingredients=우유&ingredients=당근&ingredients=상추
+```
+
+운영 제약:
+
+- 노션 원문은 `GET` + JSON RequestBody 형태지만, Cloud Run/Google 프런트에서는 GET body가 malformed request로 차단될 수 있다.
+- 외부 연동은 `POST` JSON body를 우선 사용한다.
+- `GET`이 필요한 클라이언트는 query string 형식을 사용한다.
+
+응답 예시:
+
+```json
+{
+  "success": true,
+  "result": {
+    "purchaseDate": "2026-04-09",
+    "ingredients": [
+      {"ingredientName": "우유", "expirationDate": "2026-06-16"},
+      {"ingredientName": "당근", "expirationDate": "2026-06-16"},
+      {"ingredientName": "상추", "expirationDate": "2026-06-16"}
+    ]
+  }
+}
+```
+
+하위 호환:
+
+- 기존 단건 `POST` 입력인 `item_name`, `purchase_date`, `storage_method`, `category`도 임시 지원한다.
+- 단건 호환 응답은 기존처럼 `success/data/error` envelope를 유지한다.
+
+---
+
+## 4. 응답 정책
+
+노션 명세 기준 성공 응답 형식:
+
+```json
+{
+  "success": true,
+  "result": {}
+}
+```
+
+OCR/유통기한 오류 응답 형식:
+
+```json
+{
+  "success": false,
+  "code": "ERROR_CODE",
+  "result": "사람이 읽을 수 있는 메시지"
+}
+```
+
+대표 오류 코드:
+
+| HTTP | code | 설명 |
+|---|---|---|
+| `400` | `INVALID_IMAGE` | 이미지 형식 오류 |
+| `400` | `INVALID_REQUEST` | 요청 형식 오류 |
+| `404` | `NOT_FOUND` | 대상 없음 |
+| `500` | `OCR_FAILED` | OCR 분석 실패 |
+| `503` | `SERVICE_UNAVAILABLE` | 런타임 사용 불가 |
+
+---
+
+## 5. 연계 문서
+
+- [RECOMMEND_API_SPEC.md](RECOMMEND_API_SPEC.md)
+- [../architecture/PROJECT_PROCESS_AND_RATIONALE.md](../architecture/PROJECT_PROCESS_AND_RATIONALE.md)
+- [../architecture/OCR_IMPLEMENTATION.md](../architecture/OCR_IMPLEMENTATION.md)
+- [../operations/NORMAL_INPUT_CRITERIA.md](../operations/NORMAL_INPUT_CRITERIA.md)
+- [../operations/RECAPTURE_GUIDELINES.md](../operations/RECAPTURE_GUIDELINES.md)

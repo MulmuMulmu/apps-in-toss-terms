@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>물무물무 Apps in Toss Thumbnail</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1932px;
+        height: 828px;
+        margin: 0;
+        overflow: hidden;
+        background: #f7fbff;
+        font-family:
+          "Pretendard",
+          "Noto Sans KR",
+          "Apple SD Gothic Neo",
+          "Malgun Gothic",
+          sans-serif;
+      }
+
+      .frame {
+        position: relative;
+        width: 1932px;
+        height: 828px;
+        padding: 68px 92px;
+        color: #24333f;
+        background:
+          radial-gradient(circle at 13% 14%, rgba(173, 232, 255, 0.72), transparent 24%),
+          radial-gradient(circle at 92% 84%, rgba(205, 216, 255, 0.82), transparent 27%),
+          linear-gradient(135deg, #fbf9ff 0%, #f1fbff 45%, #eef4ff 100%);
+      }
+
+      .frame::before {
+        position: absolute;
+        inset: 28px;
+        content: "";
+        border: 1px solid rgba(91, 119, 140, 0.14);
+        border-radius: 54px;
+      }
+
+      .content {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 640px 1fr;
+        gap: 54px;
+        align-items: center;
+        height: 100%;
+      }
+
+      .brand {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        margin-bottom: 46px;
+      }
+
+      .logo {
+        width: 92px;
+        height: 92px;
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.82);
+        border-radius: 28px;
+        box-shadow: 0 20px 48px rgba(102, 145, 170, 0.18);
+      }
+
+      .brand-name {
+        font-size: 36px;
+        font-weight: 900;
+        letter-spacing: -0.045em;
+      }
+
+      .eyebrow {
+        margin-bottom: 18px;
+        color: #4a9fc0;
+        font-size: 30px;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+      }
+
+      h1 {
+        margin: 0;
+        color: #26323c;
+        font-size: 76px;
+        font-weight: 950;
+        line-height: 1.08;
+        letter-spacing: -0.075em;
+      }
+
+      .desc {
+        margin: 30px 0 40px;
+        color: #60717f;
+        font-size: 29px;
+        font-weight: 700;
+        line-height: 1.42;
+        letter-spacing: -0.04em;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+      }
+
+      .chip {
+        padding: 16px 22px;
+        color: #36546a;
+        font-size: 23px;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        background: rgba(255, 255, 255, 0.76);
+        border: 1px solid rgba(119, 159, 185, 0.18);
+        border-radius: 999px;
+        box-shadow: 0 16px 40px rgba(111, 150, 175, 0.12);
+      }
+
+      .screens {
+        position: relative;
+        height: 690px;
+      }
+
+      .phone {
+        position: absolute;
+        width: 316px;
+        height: 604px;
+        padding: 10px;
+        overflow: hidden;
+        background: #151f28;
+        border-radius: 40px;
+        box-shadow: 0 32px 84px rgba(46, 72, 91, 0.28);
+      }
+
+      .phone img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 30px;
+      }
+
+      .phone.fridge {
+        top: 24px;
+        left: 54px;
+        transform: rotate(-6deg);
+      }
+
+      .phone.recipe-list {
+        top: -2px;
+        left: 356px;
+        transform: rotate(2.5deg);
+      }
+
+      .phone.recipe-result {
+        top: 62px;
+        right: 54px;
+        transform: rotate(7deg);
+      }
+
+      .caption {
+        position: absolute;
+        right: 32px;
+        bottom: 18px;
+        padding: 18px 24px;
+        color: #36546a;
+        font-size: 24px;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(119, 159, 185, 0.18);
+        border-radius: 24px;
+        box-shadow: 0 20px 48px rgba(91, 128, 154, 0.16);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="frame">
+      <section class="content">
+        <div>
+          <div class="brand">
+            <img class="logo" src="../assets/logo.png" alt="물무물무 로고" />
+            <div class="brand-name">물무물무</div>
+          </div>
+
+          <div class="eyebrow">식재료 관리 앱</div>
+          <h1>남은 재료로<br />오늘 먹을 요리를 찾아요</h1>
+          <p class="desc">
+            내 식재료의 소비기한을 확인하고, 가진 재료에 맞는 레시피를 추천받을 수 있어요.
+          </p>
+
+          <div class="chips">
+            <span class="chip">내 식재료</span>
+            <span class="chip">소비기한</span>
+            <span class="chip">레시피 추천</span>
+          </div>
+        </div>
+
+        <div class="screens" aria-label="실제 앱 화면 캡처">
+          <figure class="phone fridge">
+            <img src="captures/01-fridge.png" alt="내 식재료 화면" />
+          </figure>
+          <figure class="phone recipe-list">
+            <img src="captures/02-recipe-list.png" alt="레시피 목록 화면" />
+          </figure>
+          <figure class="phone recipe-result">
+            <img src="captures/04-recipe-result.png" alt="레시피 추천 결과 화면" />
+          </figure>
+          <div class="caption">실제 앱 화면 기반 미리보기</div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
