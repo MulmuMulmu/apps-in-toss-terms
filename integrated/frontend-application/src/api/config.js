@@ -6,7 +6,7 @@ const getDefaultApiBaseUrl = () => {
     return 'http://localhost:8080';
   }
 
-  return 'https://sokksik.click';
+  return 'https://mulmumu-backend-aqjxa3obfa-du.a.run.app';
 };
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || getDefaultApiBaseUrl();

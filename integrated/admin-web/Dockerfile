@@ -2,7 +2,7 @@ FROM node:22-alpine AS build
 
 WORKDIR /app
 
-ARG VITE_API_BASE_URL=https://sokksik.click
+ARG VITE_API_BASE_URL=https://mulmumu-backend-aqjxa3obfa-du.a.run.app
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 COPY package*.json ./

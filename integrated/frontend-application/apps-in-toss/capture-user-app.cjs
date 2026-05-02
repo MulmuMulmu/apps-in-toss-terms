@@ -12,7 +12,7 @@ async function main() {
     isMobile: true,
   });
 
-  await page.route('https://sokksik.click/auth/login', async (route) => {
+  await page.route('https://mulmumu-backend-aqjxa3obfa-du.a.run.app/auth/login', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',

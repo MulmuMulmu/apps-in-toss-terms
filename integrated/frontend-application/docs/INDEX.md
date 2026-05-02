@@ -12,7 +12,7 @@
 
 ## 공통 API 구조
 
-- `src/api/config.js`: 백엔드 base URL. 기본값은 `https://sokksik.click`
+- `src/api/config.js`: 백엔드 base URL. 기본값은 `https://mulmumu-backend-aqjxa3obfa-du.a.run.app`
 - `src/api/request.js`: 공통 fetch wrapper. JWT가 있으면 `Authorization` 헤더를 붙인다.
 - `src/api/auth.js`: 기존 백엔드 로그인 API와 Apps in Toss 인가코드 교환 API
 - `src/services/appInTossAuth.js`: 앱인토스 첫 진입 `appLogin` 브릿지 호출 래퍼

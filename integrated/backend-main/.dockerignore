@@ -1,0 +1,12 @@
+.git
+.gradle
+build
+logs
+out
+target
+*.log
+*.hprof
+%SystemDrive%
+*.iml
+.idea
+.vscode
