@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.granite/
+.swc/
+*.ait
+*.log
+.DS_Store
