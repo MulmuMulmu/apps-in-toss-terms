@@ -6,8 +6,8 @@
 
 - `index.html`: 약관 목록
 - `terms.html`: 서비스 이용약관
+- `privacy.html`: 필수 개인정보 수집 및 이용 동의
 - `marketing.html`: 마케팅 정보 수신 동의
-- `privacy-optional.html`: 선택 개인정보 수집 및 이용 동의
 
 ## 앱인토스 산출물
 
