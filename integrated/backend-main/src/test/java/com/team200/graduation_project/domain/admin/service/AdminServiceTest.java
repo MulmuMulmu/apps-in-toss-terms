@@ -138,6 +138,23 @@ class AdminServiceTest {
     }
 
     @Test
+    void completeReportMarksReportCompleted() {
+        UUID reportId = UUID.fromString("dddddddd-dddd-dddd-dddd-dddddddddddd");
+        Report report = Report.builder()
+                .reportId(reportId)
+                .content("신고 내용")
+                .status(ReportStatus.NOT_COMPLETED)
+                .build();
+        when(reportRepository.findById(reportId)).thenReturn(Optional.of(report));
+
+        String result = adminService.completeReport(reportId);
+
+        assertThat(result).isEqualTo("신고 처리가 완료되었습니다.");
+        assertThat(report.getStatus()).isEqualTo(ReportStatus.COMPLETED);
+        verify(reportRepository).save(report);
+    }
+
+    @Test
     void getReportListAndDetailExposeAppsInTossUserIdentifiers() {
         User reporter = User.builder()
                 .userId("toss_111")

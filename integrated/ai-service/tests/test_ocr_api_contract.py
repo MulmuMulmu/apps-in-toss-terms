@@ -160,6 +160,57 @@ def test_ocr_analyze_endpoint_can_return_debug_contract(monkeypatch) -> None:
     assert data["review_reasons"] == []
 
 
+def test_ocr_analyze_debug_contract_preserves_item_mapping_and_review_fields(monkeypatch) -> None:
+    class ReviewStubReceiptService(StubReceiptService):
+        def parse(self, payload: dict) -> dict:
+            parsed = super().parse(payload)
+            parsed["items"][0]["needs_review"] = True
+            parsed["items"][0]["review_reason"] = ["low_confidence"]
+            parsed["review_required"] = True
+            parsed["review_reasons"] = ["unresolved_items"]
+            return parsed
+
+    monkeypatch.setattr(main, "_get_receipt_service", lambda use_qwen: ReviewStubReceiptService())
+
+    async def _request() -> httpx.Response:
+        transport = httpx.ASGITransport(app=main.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            return await client.post(
+                "/ai/ocr/analyze?debug=true",
+                files={"image": ("receipt.png", _make_image_bytes(), "image/png")},
+            )
+
+    response = asyncio.run(_request())
+
+    assert response.status_code == 200
+    food_item = response.json()["data"]["food_items"][0]
+    assert food_item["mapping_status"] == "MAPPED"
+    assert food_item["mapping_source"]
+    assert food_item["needs_review"] is True
+    assert food_item["review_reason"] == ["low_confidence"]
+    assert food_item["source_line_ids"] == [0]
+
+
+def test_ocr_analyze_rejects_large_upload_before_parsing(monkeypatch) -> None:
+    def _raise_if_called(use_qwen: bool):
+        raise AssertionError("service should not parse oversized uploads")
+
+    monkeypatch.setattr(main, "_get_receipt_service", _raise_if_called)
+
+    async def _request() -> httpx.Response:
+        transport = httpx.ASGITransport(app=main.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            return await client.post(
+                "/ai/ocr/analyze",
+                files={"image": ("receipt.png", b"x" * (main.MAX_OCR_UPLOAD_BYTES + 1), "image/png")},
+            )
+
+    response = asyncio.run(_request())
+
+    assert response.status_code == 413
+    assert response.json()["code"] == "REQUEST_TOO_LARGE"
+
+
 def test_ocr_analyze_invalid_image_returns_notion_error_contract() -> None:
     async def _request() -> httpx.Response:
         transport = httpx.ASGITransport(app=main.app)

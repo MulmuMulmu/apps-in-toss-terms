@@ -79,6 +79,8 @@ def test_paddle_ocr_backend_disables_cloud_run_cpu_unstable_acceleration() -> No
             use_textline_orientation: bool = True,
             use_doc_orientation_classify: bool = True,
             use_doc_unwarping: bool = True,
+            text_detection_model_name: str | None = None,
+            text_recognition_model_name: str | None = None,
             enable_mkldnn: bool = True,
             device: str = "gpu",
         ) -> None:
@@ -90,5 +92,7 @@ def test_paddle_ocr_backend_disables_cloud_run_cpu_unstable_acceleration() -> No
     assert kwargs["use_textline_orientation"] is False
     assert kwargs["use_doc_orientation_classify"] is False
     assert kwargs["use_doc_unwarping"] is False
+    assert kwargs["text_detection_model_name"] == "PP-OCRv5_mobile_det"
+    assert kwargs["text_recognition_model_name"] == "korean_PP-OCRv5_mobile_rec"
     assert kwargs["enable_mkldnn"] is False
     assert kwargs["device"] == "cpu"

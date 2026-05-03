@@ -28,11 +28,20 @@ export const getReportDetail = async (reportId) => {
   }
 };
 
-export const updateReportStatus = async () => ({
-  success: false,
-  code: 'COMMON400',
-  result: '백엔드에 신고 상태 단독 변경 API가 없습니다.',
-});
+export const updateReportStatus = async (reportId) => {
+  try {
+    const response = await client.patch('/admin/report/status', null, {
+      params: { reportId },
+    });
+    return response.data;
+  } catch (error) {
+    return error.response?.data || {
+      success: false,
+      code: 'COMMON500',
+      result: '신고 처리 상태를 완료로 변경할 수 없습니다.',
+    };
+  }
+};
 
 export const maskPost = async (shareId) => {
   try {

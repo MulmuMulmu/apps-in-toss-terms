@@ -124,7 +124,7 @@ class ShareControllerAliasTest {
     @Test
     void postingDetailAliasUsesShareDetailService() throws Exception {
         UUID postId = UUID.randomUUID();
-        Mockito.doReturn(null).when(shareService).getShareDetail(postId);
+        Mockito.doReturn(null).when(shareService).getShareDetail("Bearer token", postId);
 
         mockMvc.perform(get("/share/posting/list/one")
                         .header("Authorization", "Bearer token")

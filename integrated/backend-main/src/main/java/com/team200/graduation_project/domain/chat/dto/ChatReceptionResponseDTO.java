@@ -22,6 +22,7 @@ public class ChatReceptionResponseDTO {
     @AllArgsConstructor
     public static class MessageItemDTO {
         private UUID messageId;
+        private String senderId;
         private String senderNicName;
         private String content;
         private String sendTime;

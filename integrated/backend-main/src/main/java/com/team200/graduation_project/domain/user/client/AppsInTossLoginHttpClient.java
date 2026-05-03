@@ -26,13 +26,15 @@ import java.util.Map;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 @Component
 @RequiredArgsConstructor
-public class AppsInTossLoginHttpClient implements AppsInTossLoginClient {
+@Slf4j
+public class AppsInTossLoginHttpClient implements AppsInTossLoginClient, AppsInTossAccessRemovalClient {
 
     private final ObjectMapper objectMapper;
 
@@ -44,6 +46,12 @@ public class AppsInTossLoginHttpClient implements AppsInTossLoginClient {
 
     @Value("${apps-in-toss.login.user-info-path:/api-partner/v1/apps-in-toss/user/oauth2/login-me}")
     private String userInfoPath;
+
+    @Value("${apps-in-toss.login.refresh-token-path:/api-partner/v1/apps-in-toss/user/oauth2/refresh-token}")
+    private String refreshTokenPath;
+
+    @Value("${apps-in-toss.login.remove-by-user-key-path:/api-partner/v1/apps-in-toss/user/oauth2/access/remove-by-user-key}")
+    private String removeByUserKeyPath;
 
     @Value("${apps-in-toss.login.mtls.enabled:false}")
     private boolean mtlsEnabled;
@@ -57,16 +65,64 @@ public class AppsInTossLoginHttpClient implements AppsInTossLoginClient {
     @Override
     public AppsInTossUserInfo login(String authorizationCode, String referrer) {
         try {
-            String accessToken = requestAccessToken(authorizationCode, referrer);
-            return requestUserInfo(accessToken);
+            AppsInTossToken token = requestAccessToken(authorizationCode, referrer);
+            AppsInTossUserInfo userInfo = requestUserInfo(token.accessToken());
+            return new AppsInTossUserInfo(
+                    userInfo.userKey(),
+                    userInfo.scope(),
+                    userInfo.agreedTerms(),
+                    token.accessToken(),
+                    token.refreshToken(),
+                    token.expiresIn()
+            );
         } catch (UserException e) {
             throw e;
         } catch (Exception e) {
+            log.warn("AppsInToss login failed while calling partner API: {}", e.getClass().getSimpleName());
             throw new UserException(UserErrorCode.USER_LOGIN_FAILED);
         }
     }
 
-    private String requestAccessToken(String authorizationCode, String referrer) throws IOException, InterruptedException {
+    @Override
+    public AppsInTossToken refreshToken(String refreshToken) {
+        try {
+            String body = objectMapper.writeValueAsString(Map.of("refreshToken", refreshToken));
+            HttpRequest request = HttpRequest.newBuilder(uri(refreshTokenPath))
+                    .timeout(Duration.ofSeconds(10))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+
+            return parseTokenResponse(unwrapSuccess(send(request)));
+        } catch (UserException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("AppsInToss token refresh failed while calling partner API: {}", e.getClass().getSimpleName());
+            throw new UserException(UserErrorCode.USER_DELETION_FAILED);
+        }
+    }
+
+    @Override
+    public void removeByUserKey(String accessToken, String userKey) {
+        try {
+            String body = objectMapper.writeValueAsString(Map.of("userKey", userKey));
+            HttpRequest request = HttpRequest.newBuilder(uri(removeByUserKeyPath))
+                    .timeout(Duration.ofSeconds(10))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + accessToken)
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+
+            unwrapSuccess(send(request));
+        } catch (UserException e) {
+            throw new UserException(UserErrorCode.USER_DELETION_FAILED);
+        } catch (Exception e) {
+            log.warn("AppsInToss unlink failed while calling partner API: {}", e.getClass().getSimpleName());
+            throw new UserException(UserErrorCode.USER_DELETION_FAILED);
+        }
+    }
+
+    private AppsInTossToken requestAccessToken(String authorizationCode, String referrer) throws IOException, InterruptedException {
         String body = objectMapper.writeValueAsString(Map.of(
                 "authorizationCode", authorizationCode,
                 "referrer", referrer
@@ -79,11 +135,21 @@ public class AppsInTossLoginHttpClient implements AppsInTossLoginClient {
                 .build();
 
         Map<String, Object> response = unwrapSuccess(send(request));
-        Object token = response.getOrDefault("accessToken", response.get("access_token"));
-        if (!StringUtils.hasText(token == null ? null : token.toString())) {
+        return parseTokenResponse(response);
+    }
+
+    private AppsInTossToken parseTokenResponse(Map<String, Object> response) {
+        Object accessToken = response.getOrDefault("accessToken", response.get("access_token"));
+        if (!StringUtils.hasText(accessToken == null ? null : accessToken.toString())) {
             throw new UserException(UserErrorCode.USER_LOGIN_FAILED);
         }
-        return token.toString();
+        Object refreshToken = response.getOrDefault("refreshToken", response.get("refresh_token"));
+        Object expiresIn = response.getOrDefault("expiresIn", response.get("expires_in"));
+        return new AppsInTossToken(
+                accessToken.toString(),
+                refreshToken == null ? "" : refreshToken.toString(),
+                parseLong(expiresIn)
+        );
     }
 
     private AppsInTossUserInfo requestUserInfo(String accessToken) throws IOException, InterruptedException {
@@ -106,6 +172,12 @@ public class AppsInTossLoginHttpClient implements AppsInTossLoginClient {
     private Map<String, Object> send(HttpRequest request) throws IOException, InterruptedException {
         HttpResponse<String> response = httpClient().send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            log.warn(
+                    "AppsInToss API returned non-success status. path={}, status={}, error={}",
+                    request.uri().getPath(),
+                    response.statusCode(),
+                    summarizeTossError(response.body())
+            );
             throw new UserException(UserErrorCode.USER_LOGIN_FAILED);
         }
         return objectMapper.readValue(response.body(), new TypeReference<>() {});
@@ -114,6 +186,8 @@ public class AppsInTossLoginHttpClient implements AppsInTossLoginClient {
     @SuppressWarnings("unchecked")
     private Map<String, Object> unwrapSuccess(Map<String, Object> response) {
         if ("FAIL".equals(response.get("resultType"))) {
+            Object error = response.get("error");
+            log.warn("AppsInToss API returned FAIL. error={}", summarizeTossError(error));
             throw new UserException(UserErrorCode.USER_LOGIN_FAILED);
         }
         Object success = response.get("success");
@@ -121,6 +195,54 @@ public class AppsInTossLoginHttpClient implements AppsInTossLoginClient {
             return (Map<String, Object>) map;
         }
         return response;
+    }
+
+    @SuppressWarnings("unchecked")
+    private String summarizeTossError(Object value) {
+        try {
+            Object parsed = value;
+            if (value instanceof String text && StringUtils.hasText(text)) {
+                parsed = objectMapper.readValue(text, new TypeReference<Map<String, Object>>() {});
+            }
+            if (parsed instanceof Map<?, ?> map) {
+                Object directError = map.get("error");
+                if (directError instanceof Map<?, ?> errorMap) {
+                    Object code = firstPresent(errorMap, "errorCode", "error");
+                    Object reason = firstPresent(errorMap, "reason", "error_description");
+                    return "code=" + safeValue(code) + ", reason=" + safeValue(reason);
+                }
+                Object code = firstPresent(map, "errorCode", "error");
+                Object reason = firstPresent(map, "reason", "error_description");
+                return "code=" + safeValue(code) + ", reason=" + safeValue(reason);
+            }
+        } catch (Exception ignored) {
+            return "unparseable";
+        }
+        return "empty";
+    }
+
+    private Object firstPresent(Map<?, ?> map, String firstKey, String secondKey) {
+        Object value = map.get(firstKey);
+        return value != null ? value : map.get(secondKey);
+    }
+
+    private String safeValue(Object value) {
+        if (value == null) {
+            return "";
+        }
+        String text = value.toString();
+        return text.length() > 120 ? text.substring(0, 120) : text;
+    }
+
+    private Long parseLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private URI uri(String path) {

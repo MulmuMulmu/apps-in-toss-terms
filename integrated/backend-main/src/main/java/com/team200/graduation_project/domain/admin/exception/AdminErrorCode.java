@@ -28,6 +28,8 @@ public enum AdminErrorCode {
             "COMMON500", "게시글을 숨김 처리 할 수 없습니다."),
     ADMIN_SHARE_ALREADY_MASKED(HttpStatus.BAD_REQUEST,
             "COMMON400", "이미 숨김처리된 게시글입니다."),
+    ADMIN_REPORT_STATUS_UPDATE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR,
+            "COMMON500", "신고 상태를 변경할 수 없습니다."),
     ADMIN_USER_ACTION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR,
             "COMMON500", "사용자 상태를 변경할 수 없습니다."),
     ADMIN_SHARE_DETAIL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR,

@@ -14,6 +14,7 @@ import java.util.UUID;
 public class ChatListItemDTO {
     private UUID chatRoomId;
     private UUID postId;
+    private String opponentId;
     private String senderNicName;
     private String lastMessage;
     private String sendTime;

@@ -1,6 +1,7 @@
 package com.team200.graduation_project.domain.ingredient.service;
 
 import com.team200.graduation_project.domain.ingredient.dto.request.UserIngredientInputRequest;
+import com.team200.graduation_project.domain.ingredient.dto.request.UserIngredientUpdateRequest;
 import com.team200.graduation_project.domain.ai.dto.ExpiryPredictionRequest;
 import com.team200.graduation_project.domain.ai.dto.ExpiryPredictionResult;
 import com.team200.graduation_project.domain.ingredient.entity.Ingredient;
@@ -127,25 +128,20 @@ public class UserIngredientService {
                 items = userIngredientRepository.findByUser(user, sort);
             }
 
+            String keyword = request.getKeyword() == null ? "" : request.getKeyword().trim().toLowerCase();
+            if (StringUtils.hasText(keyword)) {
+                items = items.stream()
+                        .filter(item -> item.getIngredient() != null
+                                && item.getIngredient().getIngredientName() != null
+                                && item.getIngredient().getIngredientName().toLowerCase().contains(keyword))
+                        .collect(Collectors.toList());
+            }
+
             java.time.LocalDate today = java.time.LocalDate.now();
             List<com.team200.graduation_project.domain.ingredient.dto.response.UserIngredientSearchResponse> responses = new java.util.ArrayList<>();
             
             for (int i = 0; i < items.size(); i++) {
-                UserIngredient item = items.get(i);
-                long dDay = 0;
-                if (item.getExpirationDate() != null) {
-                    dDay = java.time.temporal.ChronoUnit.DAYS.between(today, item.getExpirationDate());
-                }
-                
-                responses.add(com.team200.graduation_project.domain.ingredient.dto.response.UserIngredientSearchResponse.builder()
-                        .userIngredientId(item.getUserIngredientId())
-                        .sortRank(i + 1)
-                        .ingredient(item.getIngredient().getIngredientName())
-                        .category(item.getIngredient().getCategory())
-                        .dDay(dDay)
-                        .purchaseDate(item.getPurchaseDate())
-                        .expirationDate(item.getExpirationDate())
-                        .build());
+                responses.add(toSearchResponse(items.get(i), i + 1, today));
             }
             return responses;
         } catch (GeneralException e) {
@@ -165,18 +161,48 @@ public class UserIngredientService {
             throw new GeneralException(GeneralErrorCode.INVALID_REQUEST_ARGUMENT);
         }
 
-        List<UserIngredientSearchResponse> allItems = searchUserIngredients(authorizationHeader, request);
-        int fromIndex = Math.min(page * size, allItems.size());
-        int toIndex = Math.min(fromIndex + size, allItems.size());
-        List<UserIngredientSearchResponse> items = allItems.subList(fromIndex, toIndex);
+        if (request == null || !StringUtils.hasText(request.getSort())) {
+            throw new GeneralException(GeneralErrorCode.INVALID_REQUEST_ARGUMENT);
+        }
 
-        return UserIngredientPageResponse.builder()
-                .items(items)
-                .totalCount(allItems.size())
-                .page(page)
-                .size(size)
-                .hasNext(toIndex < allItems.size())
-                .build();
+        try {
+            User user = findUserFromAuthorizationHeader(authorizationHeader);
+            org.springframework.data.domain.PageRequest pageRequest = org.springframework.data.domain.PageRequest.of(page, size, createSort(request.getSort()));
+            String keyword = request.getKeyword() == null ? "" : request.getKeyword().trim();
+            boolean hasKeyword = StringUtils.hasText(keyword);
+            boolean hasCategories = request.getCategory() != null && !request.getCategory().isEmpty();
+
+            org.springframework.data.domain.Page<UserIngredient> ingredientPage;
+            if (hasCategories && hasKeyword) {
+                ingredientPage = userIngredientRepository.findByUserAndIngredient_CategoryInAndIngredient_IngredientNameContainingIgnoreCase(
+                        user, request.getCategory(), keyword, pageRequest);
+            } else if (hasCategories) {
+                ingredientPage = userIngredientRepository.findByUserAndIngredient_CategoryIn(user, request.getCategory(), pageRequest);
+            } else if (hasKeyword) {
+                ingredientPage = userIngredientRepository.findByUserAndIngredient_IngredientNameContainingIgnoreCase(user, keyword, pageRequest);
+            } else {
+                ingredientPage = userIngredientRepository.findByUser(user, pageRequest);
+            }
+
+            java.time.LocalDate today = java.time.LocalDate.now();
+            int rankOffset = page * size;
+            List<UserIngredientSearchResponse> items = new java.util.ArrayList<>();
+            for (int i = 0; i < ingredientPage.getContent().size(); i++) {
+                items.add(toSearchResponse(ingredientPage.getContent().get(i), rankOffset + i + 1, today));
+            }
+
+            return UserIngredientPageResponse.builder()
+                    .items(items)
+                    .totalCount((int) ingredientPage.getTotalElements())
+                    .page(page)
+                    .size(size)
+                    .hasNext(ingredientPage.hasNext())
+                    .build();
+        } catch (GeneralException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new GeneralException(GeneralErrorCode.INGREDIENT_CALCULATION_FAILED);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -248,6 +274,49 @@ public class UserIngredientService {
 
         userIngredientRepository.deleteAll(userIngredients);
         return "선택한 식재료가 삭제되었습니다.";
+    }
+
+    @Transactional
+    public String updateUserIngredient(String authorizationHeader, UUID userIngredientId, UserIngredientUpdateRequest request) {
+        if (userIngredientId == null || request == null || !StringUtils.hasText(request.getIngredient())) {
+            throw new GeneralException(GeneralErrorCode.BAD_REQUEST);
+        }
+
+        User user = findUserFromAuthorizationHeader(authorizationHeader);
+        UserIngredient userIngredient = userIngredientRepository.findById(userIngredientId)
+                .orElseThrow(() -> new GeneralException(GeneralErrorCode.INGREDIENT_NOT_FOUNDED));
+        if (!userIngredient.getUser().getUserId().equals(user.getUserId())) {
+            throw new GeneralException(GeneralErrorCode.UNAUTHORIZED);
+        }
+
+        Ingredient ingredient = ingredientRepository.findByIngredientName(request.getIngredient())
+                .orElseThrow(() -> new GeneralException(GeneralErrorCode.INGREDIENT_NOT_FOUNDED));
+        userIngredient.updateOwnedIngredient(
+                ingredient,
+                request.getPurchaseDate(),
+                request.getExpirationDate(),
+                UserIngredientStatus.fromClientValue(request.getStatus())
+        );
+
+        return "식재료가 수정되었습니다.";
+    }
+
+    private UserIngredientSearchResponse toSearchResponse(UserIngredient item, int sortRank, LocalDate today) {
+        long dDay = 0;
+        if (item.getExpirationDate() != null) {
+            dDay = ChronoUnit.DAYS.between(today, item.getExpirationDate());
+        }
+
+        return UserIngredientSearchResponse.builder()
+                .userIngredientId(item.getUserIngredientId())
+                .sortRank(sortRank)
+                .ingredient(item.getIngredient().getIngredientName())
+                .category(item.getIngredient().getCategory())
+                .status(item.getStatus() == null ? null : item.getStatus().getDescription())
+                .dDay(dDay)
+                .purchaseDate(item.getPurchaseDate())
+                .expirationDate(item.getExpirationDate())
+                .build();
     }
 
     private org.springframework.data.domain.Sort createSort(String sortStr) {

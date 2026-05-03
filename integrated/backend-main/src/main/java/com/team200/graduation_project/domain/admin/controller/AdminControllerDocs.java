@@ -150,6 +150,15 @@ public interface AdminControllerDocs {
             @RequestParam("shareId") UUID shareId
     );
 
+    @Operation(summary = "신고 처리 완료", description = "신고 처리 상태를 완료로 변경합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "신고 처리가 완료되었습니다."),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "신고 처리 상태를 변경할 수 없습니다.")
+    })
+    ApiResponse<String> completeReport(
+            @RequestParam("reportId") UUID reportId
+    );
+
     @Operation(summary = "신고 사용자 조치", description = "신고된 사용자에게 경고를 부여하거나 영구 정지 처리를 합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "OK"),

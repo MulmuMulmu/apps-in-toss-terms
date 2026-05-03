@@ -4,6 +4,7 @@ import com.team200.graduation_project.domain.ingredient.dto.request.AllergyUpdat
 import com.team200.graduation_project.domain.ingredient.dto.request.PreferUpdateRequest;
 import com.team200.graduation_project.domain.ingredient.dto.request.UserIngredientDeleteRequest;
 import com.team200.graduation_project.domain.ingredient.dto.request.UserIngredientInputRequest;
+import com.team200.graduation_project.domain.ingredient.dto.request.UserIngredientUpdateRequest;
 import com.team200.graduation_project.domain.ai.client.AiClientException;
 import com.team200.graduation_project.domain.ai.dto.ExpiryPredictionRequest;
 import com.team200.graduation_project.domain.ingredient.service.IngredientService;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
+import java.util.UUID;
 import com.team200.graduation_project.domain.ingredient.dto.response.UserIngredientExpirationResponse;
 import com.team200.graduation_project.domain.ingredient.dto.response.UserIngredientPageResponse;
 import com.team200.graduation_project.domain.ingredient.dto.response.UserIngredientSearchResponse;
@@ -91,6 +94,14 @@ public class IngredientController implements IngredientControllerDocs {
         return ApiResponse.onSuccess(userIngredientService.deleteUserIngredients(authorizationHeader, request.getIngredientIds()));
     }
 
+    @PutMapping("/all/my/{userIngredientId}")
+    public ApiResponse<String> updateMyIngredient(
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+            @PathVariable UUID userIngredientId,
+            @RequestBody UserIngredientUpdateRequest request) {
+        return ApiResponse.onSuccess(userIngredientService.updateUserIngredient(authorizationHeader, userIngredientId, request));
+    }
+
     @GetMapping("/experationDate/3")
     @Override
     public ApiResponse<Integer> countExpiringIngredients(
@@ -112,6 +123,12 @@ public class IngredientController implements IngredientControllerDocs {
             @RequestBody ExtraInfoRequest request
     ) {
         return ApiResponse.onSuccess(ingredientFirstLoginService.saveExtraInfo(authorizationHeader, request));
+    }
+
+    @GetMapping("/preferences")
+    public ApiResponse<?> getPreferenceSettings(
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        return ApiResponse.onSuccess(ingredientFirstLoginService.getPreferenceSettings(authorizationHeader));
     }
 
     @PutMapping("/allergy")

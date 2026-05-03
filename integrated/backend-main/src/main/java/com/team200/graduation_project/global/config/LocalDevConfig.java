@@ -28,6 +28,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
@@ -53,12 +55,15 @@ public class LocalDevConfig {
             RecipeIngredientRepository recipeIngredientRepository,
             RecipeStepRepository recipeStepRepository,
             PasswordEncoder passwordEncoder,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            Environment environment
     ) {
         return args -> {
-            seedUser(userRepository, passwordEncoder, "mulmuAdmin", "최고관리자", Role.ADMIN);
-            seedUser(userRepository, passwordEncoder, "user1", "나연", Role.USER);
-            seedUser(userRepository, passwordEncoder, "user2", "다연", Role.USER);
+            if (environment.acceptsProfiles(Profiles.of("local"))) {
+                seedUser(userRepository, passwordEncoder, "mulmuAdmin", "최고관리자", Role.ADMIN);
+                seedUser(userRepository, passwordEncoder, "user1", "나연", Role.USER);
+                seedUser(userRepository, passwordEncoder, "user2", "다연", Role.USER);
+            }
 
             seedIngredients(ingredientRepository, objectMapper);
             seedIngredientAliases(ingredientRepository, ingredientAliasRepository, objectMapper);

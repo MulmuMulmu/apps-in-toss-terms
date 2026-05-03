@@ -42,6 +42,14 @@ public class User {
     @Column(length = 1000)
     private String tossAgreedTerms;
 
+    @Column(length = 5000)
+    private String tossAccessToken;
+
+    @Column(length = 5000)
+    private String tossRefreshToken;
+
+    private LocalDateTime tossAccessTokenExpiresAt;
+
     private LocalDateTime tossLastLoginAt;
 
     private LocalDateTime deletedAt;
@@ -72,15 +80,35 @@ public class User {
         this.imageUrl = imageUrl;
     }
 
-    public void updateAppsInTossLoginMetadata(String scope, String agreedTerms) {
+    public void updateAppsInTossLoginMetadata(
+            String scope,
+            String agreedTerms,
+            String accessToken,
+            String refreshToken,
+            LocalDateTime accessTokenExpiresAt
+    ) {
         this.tossScope = scope;
         this.tossAgreedTerms = agreedTerms;
+        this.tossAccessToken = accessToken;
+        this.tossRefreshToken = refreshToken;
+        this.tossAccessTokenExpiresAt = accessTokenExpiresAt;
         this.tossLastLoginAt = LocalDateTime.now();
+    }
+
+    public void releaseAppsInTossLoginKey() {
+        this.tossUserKey = null;
+        this.tossScope = "";
+        this.tossAgreedTerms = "";
+        this.tossAccessToken = null;
+        this.tossRefreshToken = null;
+        this.tossAccessTokenExpiresAt = null;
+        this.tossLastLoginAt = null;
     }
 
     public void softDelete() {
         this.deletedAt = LocalDateTime.now();
         this.status = UserStatus.WITHDRAWN;
+        releaseAppsInTossLoginKey();
     }
 
     public void block() {

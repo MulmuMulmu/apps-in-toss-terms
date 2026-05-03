@@ -37,7 +37,7 @@ class AiClientTest {
 
     @Test
     void analyzeReceiptMapsOcrEnvelopeData() {
-        server.expect(requestTo("http://localhost:8000/ai/ocr/analyze"))
+        server.expect(requestTo("http://localhost:8000/ai/ocr/analyze?debug=true"))
                 .andExpect(method(HttpMethod.POST))
                 .andRespond(withSuccess("""
                         {
@@ -45,7 +45,7 @@ class AiClientTest {
                           "data": {
                             "purchased_at": "2026-03-11",
                             "food_items": [
-                              {"product_name": "우유", "category": "유제품", "quantity": 1}
+                              {"product_name": "우유", "raw_product_name": "서울우유 1L", "normalized_name": "우유", "category": "유제품", "quantity": 1}
                             ]
                           }
                         }
@@ -58,6 +58,8 @@ class AiClientTest {
         assertThat(response.purchased_at()).isEqualTo("2026-03-11");
         assertThat(response.food_items()).hasSize(1);
         assertThat(response.food_items().get(0).product_name()).isEqualTo("우유");
+        assertThat(response.food_items().get(0).raw_product_name()).isEqualTo("서울우유 1L");
+        assertThat(response.food_items().get(0).normalized_name()).isEqualTo("우유");
         assertThat(response.food_items().get(0).quantity()).isEqualTo(1);
     }
 
@@ -69,6 +71,7 @@ class AiClientTest {
                         {
                           "userIngredient": {
                             "ingredients": ["김치"],
+                            "allergies": ["우유"],
                             "preferIngredients": ["고등어"],
                             "dispreferIngredients": ["오이"],
                             "IngredientRatio": 0.5
@@ -104,6 +107,7 @@ class AiClientTest {
         RecommendationRequest request = new RecommendationRequest(
                 new RecommendationRequest.UserIngredient(
                         List.of("김치"),
+                        List.of("우유"),
                         List.of("고등어"),
                         List.of("오이"),
                         0.5
@@ -124,7 +128,7 @@ class AiClientTest {
 
     @Test
     void aiServerErrorIsConvertedToAiClientException() {
-        server.expect(requestTo("http://localhost:8000/ai/ocr/analyze"))
+        server.expect(requestTo("http://localhost:8000/ai/ocr/analyze?debug=true"))
                 .andExpect(method(HttpMethod.POST))
                 .andRespond(withServerError());
 
@@ -157,7 +161,7 @@ class AiClientTest {
                         """, MediaType.APPLICATION_JSON));
 
         tokenClient.recommendRecipes(new RecommendationRequest(
-                new RecommendationRequest.UserIngredient(List.of("김치"), List.of(), List.of(), 0.5),
+                new RecommendationRequest.UserIngredient(List.of("김치"), List.of(), List.of(), List.of(), 0.5),
                 List.of()
         ));
     }

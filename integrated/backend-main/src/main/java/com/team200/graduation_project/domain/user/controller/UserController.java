@@ -2,6 +2,7 @@ package com.team200.graduation_project.domain.user.controller;
 
 import com.team200.graduation_project.domain.user.dto.request.ChangePasswordRequest;
 import com.team200.graduation_project.domain.user.dto.request.ChangeNicknameRequest;
+import com.team200.graduation_project.domain.user.dto.request.AppsInTossUnlinkCallbackRequest;
 import com.team200.graduation_project.domain.user.dto.request.KakaoSignupRequest;
 import com.team200.graduation_project.domain.user.dto.request.LoginRequest;
 import com.team200.graduation_project.domain.user.dto.request.TossLoginRequest;
@@ -10,7 +11,12 @@ import com.team200.graduation_project.domain.user.dto.response.LoginResponse;
 import com.team200.graduation_project.domain.user.dto.response.UserMypageResponse;
 import com.team200.graduation_project.domain.user.service.UserService;
 import com.team200.graduation_project.global.apiPayload.ApiResponse;
+import com.team200.graduation_project.global.apiPayload.code.GeneralErrorCode;
+import com.team200.graduation_project.global.apiPayload.exception.GeneralException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,6 +36,15 @@ import org.springframework.http.MediaType;
 public class UserController implements UserControllerDocs {
 
     private final UserService userService;
+
+    @Value("${apps-in-toss.unlink-callback.basic-auth.enabled:false}")
+    private boolean unlinkCallbackBasicAuthEnabled;
+
+    @Value("${apps-in-toss.unlink-callback.basic-auth.username:}")
+    private String unlinkCallbackBasicAuthUsername;
+
+    @Value("${apps-in-toss.unlink-callback.basic-auth.password:}")
+    private String unlinkCallbackBasicAuthPassword;
 
     @GetMapping("/signup/idCheck")
     @Override
@@ -65,6 +80,45 @@ public class UserController implements UserControllerDocs {
     @Override
     public ApiResponse<LoginResponse> loginWithToss(@RequestBody TossLoginRequest request) {
         return ApiResponse.onSuccess(userService.loginWithToss(request));
+    }
+
+    @GetMapping("/toss/unlink/callback")
+    public ApiResponse<String> handleAppsInTossUnlinkCallback(
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+            @RequestParam("userKey") String userKey,
+            @RequestParam(value = "referrer", required = false) String referrer
+    ) {
+        validateUnlinkCallbackBasicAuth(authorizationHeader);
+        return ApiResponse.onSuccess(userService.handleAppsInTossUnlinkCallback(userKey, referrer));
+    }
+
+    @PostMapping("/toss/unlink/callback")
+    public ApiResponse<String> handleAppsInTossUnlinkCallback(
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+            @RequestBody AppsInTossUnlinkCallbackRequest request
+    ) {
+        validateUnlinkCallbackBasicAuth(authorizationHeader);
+        return ApiResponse.onSuccess(userService.handleAppsInTossUnlinkCallback(request.userKey(), request.referrer()));
+    }
+
+    private void validateUnlinkCallbackBasicAuth(String authorizationHeader) {
+        if (!unlinkCallbackBasicAuthEnabled) {
+            return;
+        }
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Basic ")) {
+            throw new GeneralException(GeneralErrorCode.UNAUTHORIZED);
+        }
+        String encoded = authorizationHeader.substring("Basic ".length()).trim();
+        String decoded;
+        try {
+            decoded = new String(Base64.getDecoder().decode(encoded), StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            throw new GeneralException(GeneralErrorCode.UNAUTHORIZED);
+        }
+        String expected = unlinkCallbackBasicAuthUsername.trim() + ":" + unlinkCallbackBasicAuthPassword.trim();
+        if (!expected.equals(decoded)) {
+            throw new GeneralException(GeneralErrorCode.UNAUTHORIZED);
+        }
     }
 
     @PostMapping("/logout")

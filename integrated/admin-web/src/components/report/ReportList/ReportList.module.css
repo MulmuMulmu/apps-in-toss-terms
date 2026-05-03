@@ -99,6 +99,18 @@
   border-color: #93c5fd;
 }
 
+.actionMessage {
+  padding: 12px 14px;
+  margin: -8px 0 18px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background-color: #eff6ff;
+  color: #1e40af;
+  font-size: 13px;
+  font-weight: 700;
+  word-break: break-all;
+}
+
 /* DatePicker 커스텀 스타일 */
 :global(.react-datepicker-wrapper) {
   width: 100%;

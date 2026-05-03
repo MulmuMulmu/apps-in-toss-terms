@@ -308,7 +308,7 @@ domain tests passed
 
 Expo app:
 
-- `src/api/config.js`: 기본 URL은 배포 환경에서 Cloud Run 백엔드 URL로 설정하고, 로컬에서는 env로 `EXPO_PUBLIC_API_BASE_URL` 변경 가능.
+- `src/api/config.js`: 기본 URL `https://sokksik.click`, env로 `EXPO_PUBLIC_API_BASE_URL` 변경 가능.
 - `src/api/ingredients.js`: `POST /ingredient/analyze`, `GET /ingredient/all/my`, `POST /ingredient/input`.
 - `src/api/recipes.js`: `POST /recipe/recommendations`.
 

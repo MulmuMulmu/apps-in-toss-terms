@@ -11,6 +11,8 @@ PUBLIC_PATHS = {
     "/openapi.json",
 }
 
+PRODUCTION_ENV_VALUES = {"prod", "production"}
+
 
 def get_cors_allowed_origins() -> list[str]:
     raw_origins = os.environ.get(
@@ -32,12 +34,32 @@ def _extract_token(request: Request) -> str:
     return authorization
 
 
+def _is_production_environment() -> bool:
+    env_value = (
+        os.environ.get("AI_ENV")
+        or os.environ.get("ENVIRONMENT")
+        or os.environ.get("APP_ENV")
+        or os.environ.get("ENV")
+        or ""
+    ).strip().casefold()
+    return env_value in PRODUCTION_ENV_VALUES or bool(os.environ.get("K_SERVICE"))
+
+
 def internal_token_required_response(request: Request) -> JSONResponse | None:
     expected_token = os.environ.get("AI_INTERNAL_TOKEN", "").strip()
-    if not expected_token:
-        return None
     if request.method == "OPTIONS" or request.url.path in PUBLIC_PATHS:
         return None
+    if not expected_token:
+        if not _is_production_environment():
+            return None
+        return JSONResponse(
+            status_code=401,
+            content={
+                "success": False,
+                "code": "AI401",
+                "result": "AI 서비스 인증이 필요합니다.",
+            },
+        )
     if _extract_token(request) == expected_token:
         return None
 

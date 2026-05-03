@@ -14,7 +14,9 @@ from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
 os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
 os.environ.setdefault("FLAGS_use_mkldnn", "0")
+os.environ.setdefault("FLAGS_use_onednn", "0")
 os.environ.setdefault("FLAGS_enable_pir_api", "0")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 from .expiry import ExpiryEvaluator, InventoryItem
 from .preprocess import ReceiptPreprocessor, preprocess_receipt
@@ -162,6 +164,16 @@ class PaddleOcrBackend:
             kwargs["use_doc_orientation_classify"] = False
         if "use_doc_unwarping" in params:
             kwargs["use_doc_unwarping"] = False
+        if "text_detection_model_name" in params:
+            kwargs["text_detection_model_name"] = os.environ.get(
+                "PADDLE_OCR_TEXT_DETECTION_MODEL_NAME",
+                "PP-OCRv5_mobile_det",
+            )
+        if "text_recognition_model_name" in params:
+            kwargs["text_recognition_model_name"] = os.environ.get(
+                "PADDLE_OCR_TEXT_RECOGNITION_MODEL_NAME",
+                "korean_PP-OCRv5_mobile_rec",
+            )
         if "use_mkldnn" in params:
             kwargs["use_mkldnn"] = False
         if "enable_mkldnn" in params:

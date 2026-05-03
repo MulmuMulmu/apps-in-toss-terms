@@ -21,6 +21,8 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     Optional<User> findByTossUserKeyAndDeletedAtIsNull(String tossUserKey);
 
+    Optional<User> findByTossUserKey(String tossUserKey);
+
     Optional<User> findByNickNameIsAndDeletedAtIsNull(String nickName);
 
     long countByStatus(UserStatus status);

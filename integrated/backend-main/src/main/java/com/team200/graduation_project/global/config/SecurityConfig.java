@@ -58,6 +58,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/",
                                 "/error",
+                                "/health",
+                                "/test/health-check",
                                 "/actuator/health",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
@@ -69,6 +71,7 @@ public class SecurityConfig {
                                 "/auth/login",
                                 "/auth/login/**",
                                 "/auth/toss/login",
+                                "/auth/toss/unlink/callback",
                                 "/admin/auth/login"
                         ).permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
@@ -76,12 +79,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/ingredient/input").authenticated()
                         .requestMatchers(HttpMethod.POST, "/ingredient/prediction").authenticated()
                         .requestMatchers(HttpMethod.GET, "/ingredient/all/my/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/ingredient/all/my/*").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/ingredient/all/my").authenticated()
-                        .requestMatchers("/ingredient/first/login", "/ingredient/allergy", "/ingredient/prefer").authenticated()
+                        .requestMatchers("/ingredient/first/login", "/ingredient/allergy", "/ingredient/prefer", "/ingredient/preferences").authenticated()
                         .requestMatchers(HttpMethod.POST, "/recipe/recommendations").authenticated()
                         .requestMatchers("/share/**", "/chat/**").authenticated()
                         .requestMatchers("/auth/logout", "/auth/deletion", "/auth/mypage/**", "/auth/nickName", "/auth/password").authenticated()
-                        .anyRequest().permitAll());
+                        .anyRequest().authenticated());
 
         if (jwtAuthenticationFilter != null) {
             http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

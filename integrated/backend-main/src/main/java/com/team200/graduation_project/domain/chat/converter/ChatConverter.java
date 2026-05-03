@@ -22,6 +22,7 @@ public class ChatConverter {
     public ChatReceptionResponseDTO.MessageItemDTO toMessageItemDTO(ChatMessage chatMessage) {
         return ChatReceptionResponseDTO.MessageItemDTO.builder()
                 .messageId(chatMessage.getChatMessageId())
+                .senderId(chatMessage.getUser().getUserId())
                 .senderNicName(chatMessage.getUser().getNickName())
                 .content(chatMessage.getDetailMessage())
                 .sendTime(chatMessage.getCreateTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
@@ -36,6 +37,7 @@ public class ChatConverter {
         return ChatListItemDTO.builder()
                 .chatRoomId(chatRoom.getChatRoomId())
                 .postId(chatRoom.getShare().getShareId())
+                .opponentId(opponent.getUserId())
                 .senderNicName(nickname)
                 .lastMessage(lastMessage != null ? lastMessage.getDetailMessage() : "")
                 .sendTime(lastMessage != null ? lastMessage.getCreateTime().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : "")

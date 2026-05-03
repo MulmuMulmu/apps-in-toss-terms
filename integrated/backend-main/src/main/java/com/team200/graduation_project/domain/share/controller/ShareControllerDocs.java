@@ -156,7 +156,9 @@ public interface ShareControllerDocs {
             @Parameter(hidden = true) @RequestHeader("Authorization") String authorizationHeader,
             @Parameter(description = "조회 반경(km), 기본 10km, 최대 50km") @RequestParam(defaultValue = "10") Double radiusKm,
             @Parameter(description = "0부터 시작하는 페이지 번호") @RequestParam(defaultValue = "0") Integer page,
-            @Parameter(description = "페이지 크기, 기본 10개, 최대 50개") @RequestParam(defaultValue = "10") Integer size);
+            @Parameter(description = "페이지 크기, 기본 10개, 최대 50개") @RequestParam(defaultValue = "10") Integer size,
+            @Parameter(description = "둘러보기 기준 위도. 없으면 인증 위치를 사용합니다.") @RequestParam(required = false) Double latitude,
+            @Parameter(description = "둘러보기 기준 경도. 없으면 인증 위치를 사용합니다.") @RequestParam(required = false) Double longitude);
 
     @Operation(summary = "나눔 게시글 상세 조회", description = "게시글 ID를 통해 특정 나눔 게시글의 상세 정보를 조회합니다.")
     @ApiResponses({
@@ -185,6 +187,13 @@ public interface ShareControllerDocs {
     ApiResponse<ShareDetailResponseDTO> getShareDetail(
             @Parameter(hidden = true) @RequestHeader("Authorization") String authorizationHeader,
             @Parameter(description = "게시글 ID") java.util.UUID postId);
+
+    @Operation(summary = "내가 숨긴 나눔글 리스트 조회", description = "현재 로그인 사용자가 숨김 처리한 나눔글을 조회합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = MyShareItemDTO.class))))
+    })
+    ApiResponse<java.util.List<MyShareItemDTO>> getHiddenShareList(
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authorizationHeader);
 
     @Operation(summary = "내가 작성한 나눔글 리스트 조회", description = "내가 작성한 나눔글을 상태(나눔 중, 나눔 완료)에 따라 조회합니다.")
     @ApiResponses({

@@ -5,6 +5,12 @@ import java.util.List;
 public record AppsInTossUserInfo(
         String userKey,
         String scope,
-        List<String> agreedTerms
+        List<String> agreedTerms,
+        String accessToken,
+        String refreshToken,
+        Long expiresIn
 ) {
+    public AppsInTossUserInfo(String userKey, String scope, List<String> agreedTerms) {
+        this(userKey, scope, agreedTerms, "", "", null);
+    }
 }

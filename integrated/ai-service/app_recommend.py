@@ -7,28 +7,43 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 from canonical_ingredients import canonicalize_ingredient_name
 from internal_auth import get_cors_allowed_origins, internal_token_required_response
 
 
+MAX_USER_INGREDIENTS = 200
+MAX_RECOMMENDATION_CANDIDATES = 500
+MAX_RECIPE_INGREDIENTS = 100
+MAX_INGREDIENT_NAME_LENGTH = 120
+MAX_RECIPE_TITLE_LENGTH = 200
+
+
 class BackendUserIngredient(BaseModel):
-    ingredients: List[str] = Field(default_factory=list)
-    preferIngredients: List[str] = Field(default_factory=list)
-    dispreferIngredients: List[str] = Field(default_factory=list)
+    ingredients: List[str] = Field(default_factory=list, max_length=MAX_USER_INGREDIENTS)
+    allergies: List[str] = Field(default_factory=list, max_length=MAX_USER_INGREDIENTS)
+    preferIngredients: List[str] = Field(default_factory=list, max_length=MAX_USER_INGREDIENTS)
+    dispreferIngredients: List[str] = Field(default_factory=list, max_length=MAX_USER_INGREDIENTS)
     IngredientRatio: float = Field(default=0.5, ge=0.0, le=1.0)
+
+    @field_validator("ingredients", "allergies", "preferIngredients", "dispreferIngredients", mode="before")
+    @classmethod
+    def default_none_list(cls, value):
+        return [] if value is None else value
 
 
 class BackendCandidateRecipe(BaseModel):
-    recipe_id: str
-    title: str
-    ingredients: List[str] = Field(default_factory=list)
+    model_config = ConfigDict(populate_by_name=True)
+
+    recipe_id: str = Field(validation_alias=AliasChoices("recipe_id", "recipeId"))
+    title: str = Field(max_length=MAX_RECIPE_TITLE_LENGTH)
+    ingredients: List[str] = Field(default_factory=list, max_length=MAX_RECIPE_INGREDIENTS)
 
 
 class BackendRecommendationRequest(BaseModel):
     userIngredient: BackendUserIngredient
-    candidates: List[BackendCandidateRecipe]
+    candidates: List[BackendCandidateRecipe] = Field(max_length=MAX_RECOMMENDATION_CANDIDATES)
 
 
 app = FastAPI(
@@ -75,6 +90,12 @@ def _canonical_key(value: str) -> str:
     return _normalize_name(canonical_name or value)
 
 
+def _ingredient_match_terms(value: str) -> set[str]:
+    raw_name = _normalize_name(value)
+    canonical_name = _canonical_key(value)
+    return {term for term in {raw_name, canonical_name} if term}
+
+
 def _dedupe_names(values: list[str]) -> list[str]:
     deduped: list[str] = []
     seen: set[str] = set()
@@ -89,9 +110,13 @@ def _dedupe_names(values: list[str]) -> list[str]:
 
 
 def _contains_any_preference(texts: list[str], preferences: set[str]) -> bool:
-    normalized_texts = [_normalize_name(text) for text in texts]
+    normalized_texts = [
+        term
+        for text in texts
+        for term in _ingredient_match_terms(text)
+    ]
     return any(
-        preference and any(preference in text for text in normalized_texts)
+        preference and any(preference in text or text in preference for text in normalized_texts)
         for preference in preferences
     )
 
@@ -109,6 +134,12 @@ def _recommend_backend_candidates(payload: dict) -> dict:
         for name in request.userIngredient.dispreferIngredients
         if _canonical_key(name)
     )
+    allergies = set(
+        _canonical_key(name)
+        for name in request.userIngredient.allergies
+        if _canonical_key(name)
+    )
+    hard_excluded = disliked | allergies
     min_ratio = request.userIngredient.IngredientRatio
 
     recommendations: list[dict[str, Any]] = []
@@ -119,7 +150,11 @@ def _recommend_backend_candidates(payload: dict) -> dict:
 
         recipe_keys = [_canonical_key(name) for name in recipe_ingredients]
         recipe_key_set = set(recipe_keys)
-        if recipe_key_set & disliked or _contains_any_preference([candidate.title], disliked):
+        if (
+            recipe_key_set & hard_excluded
+            or _contains_any_preference([candidate.title], hard_excluded)
+            or _contains_any_preference(recipe_ingredients, hard_excluded)
+        ):
             continue
 
         matched = [

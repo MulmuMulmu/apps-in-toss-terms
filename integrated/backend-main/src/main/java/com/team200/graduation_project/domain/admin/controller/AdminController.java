@@ -109,6 +109,14 @@ public class AdminController implements AdminControllerDocs {
     }
 
     @Override
+    @PatchMapping("/report/status")
+    public ApiResponse<String> completeReport(
+            @RequestParam("reportId") UUID reportId
+    ) {
+        return ApiResponse.onSuccess(adminService.completeReport(reportId));
+    }
+
+    @Override
     @PatchMapping("/report/users")
     public ApiResponse<String> takeActionAgainstUser(
             @RequestBody AdminUserActionRequest request

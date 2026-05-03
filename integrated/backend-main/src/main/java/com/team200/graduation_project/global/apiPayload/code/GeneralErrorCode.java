@@ -32,6 +32,8 @@ public enum GeneralErrorCode {
             "COMMON400", "reqeust 값을 정확하게 입력하여 주세요."),
     LOCATION_FETCH_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,
             "COMMON500", "위치를 불러올 수 없습니다."),
+    LOCATION_VERIFICATION_FAILED(HttpStatus.BAD_REQUEST,
+            "LOCATION400", "현재 위치와 선택한 동네가 일치하지 않습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR,
             "COMMON500", "예기치 않은 서버 에러가 발생했습니다."),
     INGREDIENT_NOT_FOUNDED(HttpStatus.BAD_REQUEST,"COMMON400","식재료 db에 식품을 찾을 수 없습니다."),

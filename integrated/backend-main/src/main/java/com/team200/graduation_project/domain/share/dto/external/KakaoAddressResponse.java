@@ -12,14 +12,14 @@ public class KakaoAddressResponse {
     private Meta meta;
     private List<Document> documents;
 
-    public static KakaoAddressResponse localFallback() {
+    public static KakaoAddressResponse ofAddress(String addressName, String region3DepthName) {
         KakaoAddressResponse response = new KakaoAddressResponse();
         Meta meta = new Meta();
         meta.totalCount = 1;
 
         Address address = new Address();
-        address.addressName = "경기 성남시 수정구 복정동";
-        address.region3DepthName = "복정동";
+        address.addressName = addressName;
+        address.region3DepthName = region3DepthName;
 
         Document document = new Document();
         document.address = address;

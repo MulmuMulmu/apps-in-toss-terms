@@ -3,6 +3,7 @@ package com.team200.graduation_project.domain.ingredient.service;
 import com.team200.graduation_project.domain.ingredient.dto.request.ExtraInfoRequest;
 import com.team200.graduation_project.domain.ingredient.dto.request.AllergyUpdateRequest;
 import com.team200.graduation_project.domain.ingredient.dto.request.PreferUpdateRequest;
+import com.team200.graduation_project.domain.ingredient.dto.response.UserPreferenceSettingsResponse;
 import com.team200.graduation_project.domain.ingredient.entity.Ingredient;
 import com.team200.graduation_project.domain.ingredient.repository.IngredientRepository;
 import com.team200.graduation_project.domain.user.entity.User;
@@ -48,6 +49,18 @@ public class IngredientFirstLoginService {
         user.updateFirstLogin(false);
 
         return "성공적으로 저장되었습니다.";
+    }
+
+    @Transactional(readOnly = true)
+    public UserPreferenceSettingsResponse getPreferenceSettings(String authorizationHeader) {
+        User user = findUserFromAuthorizationHeader(authorizationHeader);
+        List<UserPreference> preferences = userPreferenceRepository.findByUser(user);
+
+        return UserPreferenceSettingsResponse.builder()
+                .allergies(toIngredientNames(preferences, "ALLERGY"))
+                .preferIngredients(toIngredientNames(preferences, "PREFER"))
+                .dispreferIngredients(toIngredientNames(preferences, "DISPREFER"))
+                .build();
     }
 
     @Transactional
@@ -154,6 +167,17 @@ public class IngredientFirstLoginService {
                 .ingredient(ingredient)
                 .type(type)
                 .build();
+    }
+
+    private List<String> toIngredientNames(List<UserPreference> preferences, String type) {
+        return preferences.stream()
+                .filter(preference -> type.equals(preference.getType()))
+                .map(UserPreference::getIngredient)
+                .filter(Objects::nonNull)
+                .map(Ingredient::getIngredientName)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .toList();
     }
 }
 

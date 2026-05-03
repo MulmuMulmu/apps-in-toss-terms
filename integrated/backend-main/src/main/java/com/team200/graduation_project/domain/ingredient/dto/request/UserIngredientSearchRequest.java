@@ -18,4 +18,7 @@ public class UserIngredientSearchRequest {
 
     @Schema(description = "정렬 기준 (date&ascending, date&descending, name&ascending, name&descending)", example = "date&ascending")
     private String sort;
+
+    @Schema(description = "식재료명 검색어", example = "양파")
+    private String keyword;
 }

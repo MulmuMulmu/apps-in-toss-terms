@@ -69,4 +69,16 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.result").value("식재료 별칭이 성공적으로 등록되었습니다."));
     }
+
+    @Test
+    void completeReportWrapsServiceResultWithBackendEnvelope() throws Exception {
+        Mockito.when(adminService.completeReport(any()))
+                .thenReturn("신고 처리가 완료되었습니다.");
+
+        mockMvc.perform(patch("/admin/report/status")
+                        .param("reportId", "11111111-1111-1111-1111-111111111111"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.result").value("신고 처리가 완료되었습니다."));
+    }
 }

@@ -5,7 +5,14 @@ FROM python:3.11-slim AS cpu-dev
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True \
+    FLAGS_use_mkldnn=0 \
+    FLAGS_use_onednn=0 \
+    FLAGS_enable_pir_api=0 \
+    OMP_NUM_THREADS=1 \
+    PADDLE_OCR_TEXT_DETECTION_MODEL_NAME=PP-OCRv5_mobile_det \
+    PADDLE_OCR_TEXT_RECOGNITION_MODEL_NAME=korean_PP-OCRv5_mobile_rec
 
 WORKDIR /app
 

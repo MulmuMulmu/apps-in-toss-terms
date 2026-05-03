@@ -68,9 +68,11 @@ public class ShareController implements ShareControllerDocs {
             @Parameter(hidden = true) @RequestHeader("Authorization") String authorizationHeader,
             @RequestParam(defaultValue = "10") Double radiusKm,
             @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "10") Integer size
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) Double latitude,
+            @RequestParam(required = false) Double longitude
     ) {
-        return ApiResponse.onSuccess(shareService.getShareList(authorizationHeader, radiusKm, page, size));
+        return ApiResponse.onSuccess(shareService.getShareList(authorizationHeader, radiusKm, page, size, latitude, longitude));
     }
 
     @Override
@@ -79,7 +81,33 @@ public class ShareController implements ShareControllerDocs {
             @Parameter(hidden = true) @RequestHeader("Authorization") String authorizationHeader,
             @RequestParam UUID postId
     ) {
-        return ApiResponse.onSuccess(shareService.getShareDetail(postId));
+        return ApiResponse.onSuccess(shareService.getShareDetail(authorizationHeader, postId));
+    }
+
+    @PostMapping("/{postId}/hide")
+    public ApiResponse<String> hideSharePosting(
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable UUID postId
+    ) {
+        shareService.hideSharePosting(authorizationHeader, postId);
+        return ApiResponse.onSuccess("숨김 처리되었습니다.");
+    }
+
+    @DeleteMapping("/{postId}/hide")
+    public ApiResponse<String> unhideSharePosting(
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable UUID postId
+    ) {
+        shareService.unhideSharePosting(authorizationHeader, postId);
+        return ApiResponse.onSuccess("숨김 해제되었습니다.");
+    }
+
+    @Override
+    @GetMapping("/hidden/list")
+    public ApiResponse<List<MyShareItemDTO>> getHiddenShareList(
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authorizationHeader
+    ) {
+        return ApiResponse.onSuccess(shareService.getHiddenShareList(authorizationHeader));
     }
 
     @Override
@@ -89,6 +117,14 @@ public class ShareController implements ShareControllerDocs {
             @RequestParam String type
     ) {
         return ApiResponse.onSuccess(shareService.getMyShareList(authorizationHeader, type));
+    }
+
+    @GetMapping("/users/{sellerId}/list")
+    public ApiResponse<List<MyShareItemDTO>> getUserShareList(
+            @Parameter(hidden = true) @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable String sellerId
+    ) {
+        return ApiResponse.onSuccess(shareService.getUserShareList(authorizationHeader, sellerId));
     }
 
     @Override

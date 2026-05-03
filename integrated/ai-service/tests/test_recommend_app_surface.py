@@ -105,3 +105,60 @@ def test_ingredient_recommondation_returns_ai500_on_invalid_contract() -> None:
         "code": "AI500",
         "result": "레시피를 추천할 수 없습니다.",
     }
+
+
+def test_ingredient_recommondation_blocks_disliked_substring_and_alias_matches() -> None:
+    result = app_recommend._recommend_backend_candidates(
+        {
+            "userIngredient": {
+                "ingredients": ["김치", "양파", "두부"],
+                "allergies": ["닭"],
+                "dispreferIngredients": ["우유", "고기"],
+                "IngredientRatio": 0.25,
+            },
+            "candidates": [
+                {
+                    "recipe_id": "recipe-chicken",
+                    "title": "닭가슴살 김치볶음",
+                    "ingredients": ["김치", "닭가슴살"],
+                },
+                {
+                    "recipe_id": "recipe-milk",
+                    "title": "크림 두부",
+                    "ingredients": ["두부", "저지방우유"],
+                },
+                {
+                    "recipe_id": "recipe-pork-substring",
+                    "title": "매콤 김치찜",
+                    "ingredients": ["김치", "돼지고기"],
+                },
+                {
+                    "recipe_id": "recipe-safe",
+                    "title": "양파 두부김치",
+                    "ingredients": ["김치", "양파", "두부"],
+                },
+            ],
+        }
+    )
+
+    assert [item["recipeId"] for item in result["recommendations"]] == ["recipe-safe"]
+
+
+def test_ingredient_recommondation_rejects_oversized_candidate_list() -> None:
+    payload = {
+        "userIngredient": {"ingredients": ["김치"], "IngredientRatio": 0.5},
+        "candidates": [
+            {"recipe_id": f"recipe-{index}", "title": "김치", "ingredients": ["김치"]}
+            for index in range(app_recommend.MAX_RECOMMENDATION_CANDIDATES + 1)
+        ],
+    }
+
+    async def _request() -> httpx.Response:
+        transport = httpx.ASGITransport(app=app_recommend.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            return await client.post("/ai/ingredient/recommondation", json=payload)
+
+    response = asyncio.run(_request())
+
+    assert response.status_code == 500
+    assert response.json()["code"] == "AI500"

@@ -13,15 +13,19 @@ import com.team200.graduation_project.domain.share.dto.response.LocationSearchRe
 import com.team200.graduation_project.domain.share.dto.response.MyShareItemDTO;
 import com.team200.graduation_project.domain.share.dto.response.ShareDetailResponseDTO;
 import com.team200.graduation_project.domain.share.dto.response.ShareListResponseDTO;
+import com.team200.graduation_project.domain.share.entity.ChatRoom;
 import com.team200.graduation_project.domain.share.entity.Report;
 import com.team200.graduation_project.domain.share.entity.Share;
+import com.team200.graduation_project.domain.share.entity.ShareHiddenPost;
 import com.team200.graduation_project.domain.share.entity.SharePicture;
 import com.team200.graduation_project.domain.share.entity.ShareStatus;
 import com.team200.graduation_project.domain.share.exception.ShareErrorCode;
 import com.team200.graduation_project.domain.share.exception.ShareException;
 import com.team200.graduation_project.domain.share.policy.ShareEligibilityPolicy;
 import com.team200.graduation_project.domain.share.repository.ReportRepository;
+import com.team200.graduation_project.domain.share.repository.ShareHiddenPostRepository;
 import com.team200.graduation_project.domain.share.repository.SharePictureRepository;
+import com.team200.graduation_project.domain.share.repository.ChatRoomRepository;
 import com.team200.graduation_project.domain.ingredient.entity.Ingredient;
 import com.team200.graduation_project.domain.ingredient.entity.UserIngredient;
 import com.team200.graduation_project.domain.ingredient.repository.UserIngredientRepository;
@@ -45,6 +49,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 
@@ -55,6 +60,7 @@ public class ShareService {
     private static final double DEFAULT_RADIUS_KM = 10.0;
     private static final double MIN_RADIUS_KM = 1.0;
     private static final double MAX_RADIUS_KM = 50.0;
+    private static final double DEFAULT_LOCATION_VERIFICATION_RADIUS_KM = 3.0;
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 50;
 
@@ -64,6 +70,8 @@ public class ShareService {
     private final JwtTokenProvider jwtTokenProvider;
     private final ShareRepository shareRepository;
     private final SharePictureRepository sharePictureRepository;
+    private final ShareHiddenPostRepository shareHiddenPostRepository;
+    private final ChatRoomRepository chatRoomRepository;
     private final ReportRepository reportRepository;
     private final UserIngredientRepository userIngredientRepository;
     private final ShareConverter shareConverter;
@@ -72,6 +80,9 @@ public class ShareService {
 
     @Value("${spring.cloud.gcp.storage.bucket}")
     private String bucketName;
+
+    @Value("${app.location.verification-radius-km:" + DEFAULT_LOCATION_VERIFICATION_RADIUS_KM + "}")
+    private double locationVerificationRadiusKm;
 
     @Transactional(readOnly = true)
     public List<LocationSearchResponse> searchLocations(String query) {
@@ -100,6 +111,9 @@ public class ShareService {
         String userId = jwtTokenProvider.getSubject(token);
         User user = userRepository.findByUserIdIsAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new GeneralException(GeneralErrorCode.UNAUTHORIZED));
+
+        validateLocationRequest(request);
+        validateLocationVerification(request);
 
         KakaoAddressResponse response = kakaoLocalClient.coord2address(request.getLongitude(), request.getLatitude());
 
@@ -146,6 +160,46 @@ public class ShareService {
                 .build();
     }
 
+    private void validateLocationRequest(LocationRequest request) {
+        if (request == null
+                || request.getLatitude() == null
+                || request.getLongitude() == null
+                || request.getLatitude().isNaN()
+                || request.getLatitude().isInfinite()
+                || request.getLongitude().isNaN()
+                || request.getLongitude().isInfinite()
+                || request.getLatitude() < -90
+                || request.getLatitude() > 90
+                || request.getLongitude() < -180
+                || request.getLongitude() > 180) {
+            throw new GeneralException(GeneralErrorCode.BAD_REQUEST);
+        }
+    }
+
+    private void validateLocationVerification(LocationRequest request) {
+        boolean hasVerificationLatitude = request.getVerificationLatitude() != null;
+        boolean hasVerificationLongitude = request.getVerificationLongitude() != null;
+        if (!hasVerificationLatitude || !hasVerificationLongitude) {
+            throw new GeneralException(GeneralErrorCode.LOCATION_VERIFICATION_FAILED);
+        }
+        if (request.getVerificationLatitude().isNaN()
+                || request.getVerificationLatitude().isInfinite()
+                || request.getVerificationLongitude().isNaN()
+                || request.getVerificationLongitude().isInfinite()) {
+            throw new GeneralException(GeneralErrorCode.BAD_REQUEST);
+        }
+
+        double distance = calculateDistance(
+                request.getLatitude(),
+                request.getLongitude(),
+                request.getVerificationLatitude(),
+                request.getVerificationLongitude()
+        );
+        if (distance > locationVerificationRadiusKm) {
+            throw new GeneralException(GeneralErrorCode.LOCATION_VERIFICATION_FAILED);
+        }
+    }
+
     @Transactional(readOnly = true)
     public LocationResponse getMyLocation(String authorizationHeader) {
         User user = findUserFromHeader(authorizationHeader);
@@ -189,6 +243,8 @@ public class ShareService {
     @Transactional
     public void publishSharePosting(String authorizationHeader, ShareRequestDTO request) {
         User user = findUserFromHeader(authorizationHeader);
+        locationRepository.findByUser(user)
+                .orElseThrow(() -> new GeneralException(GeneralErrorCode.LOCATION_NOT_FOUND));
 
         UserIngredient userIngredient = null;
         if (StringUtils.hasText(request.getIngredientName())) {
@@ -206,6 +262,7 @@ public class ShareService {
             throw new ShareException(ShareErrorCode.SHARE_BAD_REQUEST);
         }
 
+        synchronizeIngredientExpirationDate(userIngredient, request);
         validateShareEligibility(userIngredient, request);
 
         try {
@@ -251,6 +308,11 @@ public class ShareService {
 
     @Transactional(readOnly = true)
     public ShareListResponseDTO getShareList(String authorizationHeader, Double radiusKm, Integer page, Integer size) {
+        return getShareList(authorizationHeader, radiusKm, page, size, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public ShareListResponseDTO getShareList(String authorizationHeader, Double radiusKm, Integer page, Integer size, Double latitude, Double longitude) {
         User currentUser = findUserFromHeader(authorizationHeader);
         Location currentUserLocation = locationRepository.findByUser(currentUser)
                 .orElseThrow(() -> new GeneralException(GeneralErrorCode.LOCATION_NOT_FOUND));
@@ -258,19 +320,25 @@ public class ShareService {
         int normalizedPage = normalizePage(page);
         int normalizedSize = normalizePageSize(size);
 
-        double myLat = currentUserLocation.getLatitude();
-        double myLon = currentUserLocation.getLongitude();
+        double myLat = latitude != null ? latitude : currentUserLocation.getLatitude();
+        double myLon = longitude != null ? longitude : currentUserLocation.getLongitude();
+        validateBrowseCoordinates(myLat, myLon);
+        Set<UUID> hiddenShareIds = shareHiddenPostRepository.findHiddenShareIdsByUser(currentUser);
 
         List<ShareWithDistance> filteredShares = shareRepository.findVisibleSharesWithPosterLocation(currentUser).stream()
                 .map(row -> {
                     Share share = (Share) row[0];
+                    if (hiddenShareIds.contains(share.getShareId())) return null;
                     Location posterLocation = (Location) row[1];
                     double distance = calculateDistance(myLat, myLon, posterLocation.getLatitude(), posterLocation.getLongitude());
                     if (distance > searchRadiusKm) return null;
-                    return new ShareWithDistance(share, distance, normalizeStoredDisplayAddress(posterLocation.getDisplayAddress()));
+                    return new ShareWithDistance(share, posterLocation, distance, normalizeStoredDisplayAddress(posterLocation.getDisplayAddress()));
                 })
                 .filter(java.util.Objects::nonNull)
-                .sorted((a, b) -> b.share.getCreateTime().compareTo(a.share.getCreateTime()))
+                .sorted(Comparator.comparing(
+                        (ShareWithDistance item) -> item.share.getCreateTime(),
+                        Comparator.nullsLast(Comparator.naturalOrder())
+                ).reversed())
                 .toList();
 
         long totalCount = filteredShares.size();
@@ -283,7 +351,14 @@ public class ShareService {
                             ? swd.share.getSharePicture().getPictureUrl() 
                             : null;
                     
-                    return shareConverter.toShareItemDTO(swd.share, swd.distance, firstImageUrl, swd.displayAddress);
+                    return shareConverter.toShareItemDTO(
+                            swd.share,
+                            swd.distance,
+                            firstImageUrl,
+                            swd.displayAddress,
+                            swd.posterLocation.getLatitude(),
+                            swd.posterLocation.getLongitude()
+                    );
                 })
                 .toList();
 
@@ -296,12 +371,60 @@ public class ShareService {
         );
     }
 
-    @Transactional(readOnly = true)
-    public ShareDetailResponseDTO getShareDetail(UUID postId) {
+    @Transactional
+    public void hideSharePosting(String authorizationHeader, UUID postId) {
+        User user = findUserFromHeader(authorizationHeader);
         Share share = shareRepository.findWithUserByShareId(postId)
                 .orElseThrow(() -> new ShareException(ShareErrorCode.SHARE_POSTING_NOT_FOUND));
+        if (!shareHiddenPostRepository.existsByUserAndShare(user, share)) {
+            shareHiddenPostRepository.save(ShareHiddenPost.builder()
+                    .user(user)
+                    .share(share)
+                    .build());
+        }
+    }
 
-        return shareConverter.toShareDetailResponse(share, share.getSharePicture());
+    @Transactional
+    public void unhideSharePosting(String authorizationHeader, UUID postId) {
+        User user = findUserFromHeader(authorizationHeader);
+        Share share = shareRepository.findWithUserByShareId(postId)
+                .orElseThrow(() -> new ShareException(ShareErrorCode.SHARE_POSTING_NOT_FOUND));
+        shareHiddenPostRepository.deleteByUserAndShare(user, share);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MyShareItemDTO> getHiddenShareList(String authorizationHeader) {
+        User user = findUserFromHeader(authorizationHeader);
+        return shareHiddenPostRepository.findByUserOrderByCreateTimeDesc(user).stream()
+                .map(ShareHiddenPost::getShare)
+                .filter(share -> share != null
+                        && share.getDeletedAt() == null
+                        && Boolean.TRUE.equals(share.getIsView())
+                        && share.getStatus() == ShareStatus.AVAILABLE)
+                .map(share -> {
+                    String imageUrl = share.getSharePicture() != null
+                            ? share.getSharePicture().getPictureUrl()
+                            : null;
+                    Location posterLocation = share.getUser() == null
+                            ? null
+                            : locationRepository.findByUser(share.getUser()).orElse(null);
+                    return shareConverter.toMyShareItemDTO(share, imageUrl, posterLocation);
+                })
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ShareDetailResponseDTO getShareDetail(String authorizationHeader, UUID postId) {
+        User currentUser = findUserFromHeader(authorizationHeader);
+        Share share = shareRepository.findWithUserByShareId(postId)
+                .orElseThrow(() -> new ShareException(ShareErrorCode.SHARE_POSTING_NOT_FOUND));
+        boolean owner = share.getUser() != null && share.getUser().getUserId().equals(currentUser.getUserId());
+        if (!owner && (!Boolean.TRUE.equals(share.getIsView()) || share.getStatus() != ShareStatus.AVAILABLE)) {
+            throw new ShareException(ShareErrorCode.SHARE_POSTING_NOT_FOUND);
+        }
+
+        Location posterLocation = share.getUser() == null ? null : locationRepository.findByUser(share.getUser()).orElse(null);
+        return shareConverter.toShareDetailResponse(share, share.getSharePicture(), posterLocation);
     }
 
     @Transactional(readOnly = true)
@@ -317,18 +440,37 @@ public class ShareService {
 
         try {
             List<Share> myShares = shareRepository.findAllByUserAndStatusOrderByCreateTimeDesc(user, status);
+            Location posterLocation = locationRepository.findByUser(user).orElse(null);
 
             return myShares.stream()
                     .map(share -> {
                         String imageUrl = share.getSharePicture() != null 
                                 ? share.getSharePicture().getPictureUrl() 
                                 : null;
-                        return shareConverter.toMyShareItemDTO(share, imageUrl);
+                        return shareConverter.toMyShareItemDTO(share, imageUrl, posterLocation);
                     })
                     .toList();
         } catch (Exception e) {
             throw new ShareException(ShareErrorCode.MY_SHARE_LIST_FETCH_FAILED);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<MyShareItemDTO> getUserShareList(String authorizationHeader, String sellerId) {
+        findUserFromHeader(authorizationHeader);
+        User seller = userRepository.findByUserIdIsAndDeletedAtIsNull(sellerId)
+                .orElseThrow(() -> new ShareException(ShareErrorCode.SHARE_POSTING_NOT_FOUND));
+        Location posterLocation = locationRepository.findByUser(seller).orElse(null);
+
+        return shareRepository.findAllByUserAndStatusOrderByCreateTimeDesc(seller, ShareStatus.AVAILABLE).stream()
+                .filter(share -> Boolean.TRUE.equals(share.getIsView()))
+                .map(share -> {
+                    String firstImageUrl = share.getSharePicture() != null
+                            ? share.getSharePicture().getPictureUrl()
+                            : null;
+                    return shareConverter.toMyShareItemDTO(share, firstImageUrl, posterLocation);
+                })
+                .toList();
     }
 
     @Transactional
@@ -339,6 +481,9 @@ public class ShareService {
 
         if (!share.getUser().getUserId().equals(user.getUserId())) {
             throw new GeneralException(GeneralErrorCode.UNAUTHORIZED);
+        }
+        if (share.getDeletedAt() != null || !Boolean.TRUE.equals(share.getIsView()) || share.getStatus() != ShareStatus.AVAILABLE) {
+            throw new ShareException(ShareErrorCode.SHARE_BAD_REQUEST);
         }
 
         UserIngredient userIngredient = share.getUserIngredient();
@@ -355,6 +500,7 @@ public class ShareService {
             }
         }
 
+        synchronizeIngredientExpirationDate(userIngredient, request);
         validateShareEligibility(userIngredient, request);
 
         try {
@@ -386,6 +532,9 @@ public class ShareService {
         if (!share.getUser().getUserId().equals(user.getUserId())) {
             throw new GeneralException(GeneralErrorCode.UNAUTHORIZED);
         }
+        if (share.getDeletedAt() != null || !Boolean.TRUE.equals(share.getIsView()) || share.getStatus() != ShareStatus.AVAILABLE) {
+            throw new ShareException(ShareErrorCode.SHARE_BAD_REQUEST);
+        }
 
         try {
             share.softDelete();
@@ -400,6 +549,12 @@ public class ShareService {
         User reporter = findUserFromHeader(authorizationHeader);
         Share share = shareRepository.findById(postId)
                 .orElseThrow(() -> new ShareException(ShareErrorCode.SHARE_POSTING_NOT_FOUND));
+        if (share.getUser() == null || share.getUser().getUserId().equals(reporter.getUserId())) {
+            throw new ShareException(ShareErrorCode.SHARE_BAD_REQUEST);
+        }
+        if (share.getDeletedAt() != null || !Boolean.TRUE.equals(share.getIsView()) || share.getStatus() != ShareStatus.AVAILABLE) {
+            throw new ShareException(ShareErrorCode.SHARE_BAD_REQUEST);
+        }
 
         try {
             Report report = shareConverter.toReport(request, reporter, share);
@@ -411,24 +566,29 @@ public class ShareService {
 
     @Transactional
     public void completeShareSuccession(String authorizationHeader, ShareSuccessionRequestDTO request) {
-        User giver = findUserFromHeader(authorizationHeader);
-        User taker = userRepository.findByNickNameIsAndDeletedAtIsNull(request.getTakerNickName())
-                .orElseThrow(() -> new ShareException(ShareErrorCode.SHARE_POSTING_FAILED));
-
-        if (giver.getUserId().equals(taker.getUserId())) {
+        if (request == null || request.getPostId() == null || request.getChatRoomId() == null) {
             throw new ShareException(ShareErrorCode.SHARE_BAD_REQUEST);
         }
 
-        Share share = shareRepository.findById(request.getPostId())
+        User giver = findUserFromHeader(authorizationHeader);
+        Share share = shareRepository.findByIdForUpdate(request.getPostId())
                 .orElseThrow(() -> new ShareException(ShareErrorCode.SHARE_POSTING_NOT_FOUND));
 
         if (!share.getUser().getUserId().equals(giver.getUserId())) {
             throw new GeneralException(GeneralErrorCode.UNAUTHORIZED);
         }
+        if (share.getStatus() != ShareStatus.AVAILABLE || share.getDeletedAt() != null || !Boolean.TRUE.equals(share.getIsView())) {
+            throw new ShareException(ShareErrorCode.SHARE_BAD_REQUEST);
+        }
+
+        User taker = resolveSuccessionTaker(request, share, giver);
 
         UserIngredient giverIngredient = share.getUserIngredient();
         if (giverIngredient == null) {
             throw new ShareException(ShareErrorCode.USER_INGREDIENT_NOT_FOUND);
+        }
+        if (giverIngredient.getUser() == null || !giverIngredient.getUser().getUserId().equals(giver.getUserId())) {
+            throw new ShareException(ShareErrorCode.SHARE_BAD_REQUEST);
         }
 
         try {
@@ -445,6 +605,20 @@ public class ShareService {
         } catch (Exception e) {
             throw new ShareException(ShareErrorCode.SHARE_POSTING_FAILED);
         }
+    }
+
+    private User resolveSuccessionTaker(ShareSuccessionRequestDTO request, Share share, User giver) {
+        ChatRoom chatRoom = chatRoomRepository.findById(request.getChatRoomId())
+                .orElseThrow(() -> new ShareException(ShareErrorCode.SHARE_BAD_REQUEST));
+        if (chatRoom.getShare() == null || !chatRoom.getShare().getShareId().equals(share.getShareId())) {
+            throw new ShareException(ShareErrorCode.SHARE_BAD_REQUEST);
+        }
+        User taker = chatRoom.getSender();
+
+        if (taker == null || giver.getUserId().equals(taker.getUserId())) {
+            throw new ShareException(ShareErrorCode.SHARE_BAD_REQUEST);
+        }
+        return taker;
     }
 
     private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
@@ -479,16 +653,29 @@ public class ShareService {
         return Math.min(size, MAX_PAGE_SIZE);
     }
 
+    private void validateBrowseCoordinates(double latitude, double longitude) {
+        if (Double.isNaN(latitude)
+                || Double.isInfinite(latitude)
+                || Double.isNaN(longitude)
+                || Double.isInfinite(longitude)
+                || latitude < -90
+                || latitude > 90
+                || longitude < -180
+                || longitude > 180) {
+            throw new GeneralException(GeneralErrorCode.BAD_REQUEST);
+        }
+    }
+
     private String normalizeStoredFullAddress(String fullAddress) {
         if (!StringUtils.hasText(fullAddress) || fullAddress.contains("로컬")) {
-            return "경기 성남시 수정구 복정동";
+            return "";
         }
         return fullAddress;
     }
 
     private String normalizeStoredDisplayAddress(String displayAddress) {
         if (!StringUtils.hasText(displayAddress) || displayAddress.contains("로컬")) {
-            return "복정동";
+            return "";
         }
         return displayAddress;
     }
@@ -505,13 +692,30 @@ public class ShareService {
         }
     }
 
+    private void synchronizeIngredientExpirationDate(UserIngredient userIngredient, ShareRequestDTO request) {
+        if (userIngredient == null || request == null || request.getExpirationDate() == null) {
+            return;
+        }
+        if (!request.getExpirationDate().equals(userIngredient.getExpirationDate())) {
+            userIngredient.updateOwnedIngredient(
+                    userIngredient.getIngredient(),
+                    userIngredient.getPurchaseDate(),
+                    request.getExpirationDate(),
+                    userIngredient.getStatus()
+            );
+            userIngredientRepository.save(userIngredient);
+        }
+    }
+
     private static class ShareWithDistance {
         Share share;
+        Location posterLocation;
         double distance;
         String displayAddress;
 
-        ShareWithDistance(Share share, double distance, String displayAddress) {
+        ShareWithDistance(Share share, Location posterLocation, double distance, String displayAddress) {
             this.share = share;
+            this.posterLocation = posterLocation;
             this.distance = distance;
             this.displayAddress = displayAddress;
         }

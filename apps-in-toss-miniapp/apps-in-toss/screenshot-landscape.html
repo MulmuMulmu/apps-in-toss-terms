@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>물무물무 Apps in Toss Landscape Screenshot</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1504px;
+        height: 741px;
+        margin: 0;
+        overflow: hidden;
+        background: #f7f9fc;
+        font-family:
+          "Pretendard",
+          "Noto Sans KR",
+          "Apple SD Gothic Neo",
+          "Malgun Gothic",
+          sans-serif;
+      }
+
+      .canvas {
+        width: 1504px;
+        height: 741px;
+        padding: 34px 40px;
+        color: #24313c;
+        background:
+          linear-gradient(90deg, rgba(241, 248, 255, 0.95) 0 1px, transparent 1px) 0 0 / 38px 38px,
+          linear-gradient(rgba(241, 248, 255, 0.95) 0 1px, transparent 1px) 0 0 / 38px 38px,
+          #ffffff;
+      }
+
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        height: 78px;
+        padding: 0 6px 18px;
+        border-bottom: 1px solid #e6edf3;
+      }
+
+      .brand {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+      }
+
+      .logo {
+        width: 52px;
+        height: 52px;
+        padding: 5px;
+        background: #f4fbff;
+        border: 1px solid #e1edf5;
+        border-radius: 17px;
+      }
+
+      .name {
+        font-size: 26px;
+        font-weight: 900;
+        letter-spacing: -0.045em;
+      }
+
+      .title {
+        color: #637282;
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: -0.035em;
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 24px;
+        height: 602px;
+        padding-top: 28px;
+      }
+
+      .panel {
+        position: relative;
+        display: grid;
+        grid-template-columns: 214px 1fr;
+        gap: 18px;
+        min-width: 0;
+        padding: 18px;
+        background: #ffffff;
+        border: 1px solid #e3ebf2;
+        border-radius: 28px;
+        box-shadow: 0 18px 44px rgba(58, 89, 113, 0.09);
+      }
+
+      .panel::after {
+        position: absolute;
+        top: 50%;
+        right: -26px;
+        z-index: 2;
+        width: 28px;
+        height: 28px;
+        content: "→";
+        color: #7daec5;
+        font-size: 30px;
+        font-weight: 900;
+        transform: translateY(-50%);
+      }
+
+      .panel:last-child::after {
+        display: none;
+      }
+
+      .screen {
+        width: 214px;
+        height: 352px;
+        padding: 5px;
+        overflow: hidden;
+        align-self: center;
+        background: #17232c;
+        border-radius: 25px;
+        box-shadow: 0 18px 38px rgba(31, 51, 66, 0.18);
+      }
+
+      .screen img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: #fbf9ff;
+        border-radius: 20px;
+      }
+
+      .meta {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 0;
+      }
+
+      .step {
+        width: fit-content;
+        margin-bottom: 18px;
+        padding: 8px 13px;
+        color: #248ab4;
+        font-size: 15px;
+        font-weight: 950;
+        letter-spacing: -0.02em;
+        background: #e9f7fd;
+        border-radius: 999px;
+      }
+
+      h2 {
+        margin: 0 0 14px;
+        color: #25323c;
+        font-size: 27px;
+        font-weight: 950;
+        line-height: 1.18;
+        letter-spacing: -0.065em;
+      }
+
+      p {
+        margin: 0;
+        color: #687987;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.48;
+        letter-spacing: -0.04em;
+      }
+
+      .note {
+        display: flex;
+        gap: 9px;
+        align-items: center;
+        margin-top: 24px;
+        color: #52616d;
+        font-size: 15px;
+        font-weight: 850;
+        letter-spacing: -0.035em;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        background: #87ceeb;
+        border-radius: 999px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="canvas">
+      <header class="top">
+        <div class="brand">
+          <img class="logo" src="../assets/logo.png" alt="물무물무 로고" />
+          <div class="name">물무물무</div>
+        </div>
+        <div class="title">실제 앱 화면으로 보는 식재료 관리 흐름</div>
+      </header>
+
+      <section class="flow" aria-label="앱 사용 흐름">
+        <article class="panel">
+          <div class="screen">
+            <img src="captures/01-fridge.png" alt="내 식재료 화면" />
+          </div>
+          <div class="meta">
+            <div class="step">STEP 1</div>
+            <h2>남은 식재료를<br />한눈에 확인</h2>
+            <p>등록된 재료와 소비기한을 목록에서 바로 확인해요.</p>
+            <div class="note"><span class="dot"></span><span>D-day로 임박 재료 표시</span></div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="screen">
+            <img src="captures/02-recipe-list.png" alt="레시피 목록 화면" />
+          </div>
+          <div class="meta">
+            <div class="step">STEP 2</div>
+            <h2>가진 재료로<br />추천 시작</h2>
+            <p>레시피 화면에서 내 식재료 기반 추천으로 이동해요.</p>
+            <div class="note"><span class="dot"></span><span>앱 안에서 바로 연결</span></div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="screen">
+            <img src="captures/04-recipe-result.png" alt="레시피 추천 결과 화면" />
+          </div>
+          <div class="meta">
+            <div class="step">STEP 3</div>
+            <h2>만들 수 있는<br />요리를 추천</h2>
+            <p>선택한 재료와 맞는 레시피 후보를 확인해요.</p>
+            <div class="note"><span class="dot"></span><span>부족한 재료도 함께 판단</span></div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

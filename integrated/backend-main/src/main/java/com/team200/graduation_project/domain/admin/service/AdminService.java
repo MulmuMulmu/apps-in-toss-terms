@@ -204,8 +204,8 @@ public class AdminService {
                     .map(report -> {
                         User reporter = report.getReporter();
                         Share share = report.getShare();
-                        User reported = share != null ? share.getUser() : null;
                         boolean chatReport = isChatReport(report);
+                        User reported = resolveReportedUser(report, share, chatReport);
                         return AdminReportListResponse.ReportItemDTO.builder()
                                 .reportId(report.getReportId())
                                 .shareId(share != null ? share.getShareId() : null)
@@ -241,8 +241,8 @@ public class AdminService {
 
             User reporter = report.getReporter();
             Share share = report.getShare();
-            User reported = share != null ? share.getUser() : null;
             boolean chatReport = isChatReport(report);
+            User reported = resolveReportedUser(report, share, chatReport);
 
             return AdminReportDetailResponse.builder()
                     .reporterName(reporter != null ? reporter.getNickName() : null)
@@ -282,6 +282,20 @@ public class AdminService {
             throw e;
         } catch (Exception e) {
             throw new AdminException(AdminErrorCode.ADMIN_SHARE_MASKING_ERROR);
+        }
+    }
+
+    public String completeReport(UUID reportId) {
+        try {
+            Report report = reportRepository.findById(reportId)
+                    .orElseThrow(() -> new AdminException(AdminErrorCode.ADMIN_REPORT_STATUS_UPDATE_ERROR));
+            report.complete();
+            reportRepository.save(report);
+            return "신고 처리가 완료되었습니다.";
+        } catch (AdminException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new AdminException(AdminErrorCode.ADMIN_REPORT_STATUS_UPDATE_ERROR);
         }
     }
 
@@ -406,13 +420,27 @@ public class AdminService {
                 || (StringUtils.hasText(report.getContent()) && report.getContent().contains("채팅방 ID:"));
     }
 
+    private User resolveReportedUser(Report report, Share share, boolean chatReport) {
+        if (chatReport) {
+            String reportedUserId = extractLabeledValue(report.getContent(), "신고 대상 ID:");
+            if (StringUtils.hasText(reportedUserId)) {
+                return userRepository.findByUserIdIsAndDeletedAtIsNull(reportedUserId).orElse(null);
+            }
+        }
+        return share != null ? share.getUser() : null;
+    }
+
     private String extractChatRoomId(String content) {
+        return extractLabeledValue(content, "채팅방 ID:");
+    }
+
+    private String extractLabeledValue(String content, String label) {
         if (!StringUtils.hasText(content)) {
             return null;
         }
         for (String line : content.split("\\R")) {
-            if (line.startsWith("채팅방 ID:")) {
-                String value = line.substring("채팅방 ID:".length()).trim();
+            if (line.startsWith(label)) {
+                String value = line.substring(label.length()).trim();
                 return value.isEmpty() ? null : value;
             }
         }

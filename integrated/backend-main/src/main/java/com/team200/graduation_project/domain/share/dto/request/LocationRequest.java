@@ -12,4 +12,6 @@ import lombok.NoArgsConstructor;
 public class LocationRequest {
     private Double latitude;
     private Double longitude;
+    private Double verificationLatitude;
+    private Double verificationLongitude;
 }

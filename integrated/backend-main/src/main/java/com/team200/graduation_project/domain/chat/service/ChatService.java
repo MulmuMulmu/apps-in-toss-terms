@@ -9,6 +9,7 @@ import com.team200.graduation_project.domain.share.entity.ChatRoomParticipant;
 import com.team200.graduation_project.domain.share.entity.ChatRoomParticipantId;
 import com.team200.graduation_project.domain.share.entity.Report;
 import com.team200.graduation_project.domain.share.entity.Share;
+import com.team200.graduation_project.domain.share.entity.ShareStatus;
 import com.team200.graduation_project.domain.share.exception.ShareErrorCode;
 import com.team200.graduation_project.domain.share.exception.ShareException;
 import com.team200.graduation_project.domain.share.repository.ChatBlockRepository;
@@ -40,6 +41,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ChatService {
 
+    private static final int MAX_CHAT_MESSAGE_LENGTH = 1000;
+    private static final int MAX_CHAT_REPORT_CONTENT_LENGTH = 1000;
+    private static final int MAX_CHAT_REPORT_REASON_LENGTH = 100;
+
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRoomParticipantRepository chatRoomParticipantRepository;
     private final ChatBlockRepository chatBlockRepository;
@@ -54,8 +59,12 @@ public class ChatService {
     public ChatStartResponseDTO startChat(String authorizationHeader, ChatStartRequestDTO request) {
         User sender = findUserFromHeader(authorizationHeader);
 
-        Share share = shareRepository.findById(request.getPostId())
+        Share share = shareRepository.findByIdForUpdate(request.getPostId())
                 .orElseThrow(() -> new ShareException(ShareErrorCode.SHARE_POSTING_NOT_FOUND));
+
+        if (share.getDeletedAt() != null || !Boolean.TRUE.equals(share.getIsView()) || share.getStatus() != ShareStatus.AVAILABLE) {
+            throw new ShareException(ShareErrorCode.SHARE_BAD_REQUEST);
+        }
 
         if (share.getUser().getUserId().equals(sender.getUserId())) {
             throw new GeneralException(GeneralErrorCode.BAD_REQUEST);
@@ -193,6 +202,11 @@ public class ChatService {
 
     @Transactional
     public void sendMessage(String authorizationHeader, ChatMessageRequestDTO request) {
+        if (request == null || request.getChatRoomId() == null || !StringUtils.hasText(request.getContent())
+                || request.getContent().length() > MAX_CHAT_MESSAGE_LENGTH) {
+            throw new GeneralException(GeneralErrorCode.BAD_REQUEST);
+        }
+
         User sender = findUserFromHeader(authorizationHeader);
         String senderId = sender.getUserId();
 
@@ -225,7 +239,9 @@ public class ChatService {
 
     @Transactional
     public void reportChat(String authorizationHeader, ChatReportRequestDTO request) {
-        if (request == null || request.getChatRoomId() == null || !StringUtils.hasText(request.getReason())) {
+        if (request == null || request.getChatRoomId() == null || !StringUtils.hasText(request.getReason())
+                || request.getReason().length() > MAX_CHAT_REPORT_REASON_LENGTH
+                || (StringUtils.hasText(request.getContent()) && request.getContent().length() > MAX_CHAT_REPORT_CONTENT_LENGTH)) {
             throw new GeneralException(GeneralErrorCode.BAD_REQUEST);
         }
 
@@ -241,11 +257,16 @@ public class ChatService {
             throw new GeneralException(GeneralErrorCode.FORBIDDEN);
         }
 
+        User reported = findOpponent(chatRoom, reporter);
+
         String reportedMessage = "";
         if (request.getMessageId() != null) {
             ChatMessage message = chatMessageRepository.findById(request.getMessageId())
                     .orElseThrow(() -> new GeneralException(GeneralErrorCode.NOT_FOUND));
             if (!message.getChatRoom().getChatRoomId().equals(request.getChatRoomId())) {
+                throw new GeneralException(GeneralErrorCode.BAD_REQUEST);
+            }
+            if (message.getUser() == null || message.getUser().getUserId().equals(reporterId)) {
                 throw new GeneralException(GeneralErrorCode.BAD_REQUEST);
             }
             reportedMessage = "\n신고 메시지: " + message.getDetailMessage();
@@ -257,6 +278,7 @@ public class ChatService {
                 .share(chatRoom.getShare())
                 .title("채팅 신고 - " + request.getReason().trim())
                 .content("채팅방 ID: " + request.getChatRoomId()
+                        + "\n신고 대상 ID: " + reported.getUserId()
                         + "\n사유: " + request.getReason().trim()
                         + reportedMessage
                         + "\n내용: " + detail)

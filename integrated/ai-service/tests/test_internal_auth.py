@@ -89,3 +89,24 @@ def test_recommend_app_accepts_bearer_internal_token_when_configured(monkeypatch
 
     assert response.status_code == 200
     assert response.json() == {"success": True, "data": {"recommendations": []}}
+
+
+def test_recommend_app_fails_closed_without_internal_token_in_production(monkeypatch) -> None:
+    monkeypatch.delenv("AI_INTERNAL_TOKEN", raising=False)
+    monkeypatch.setenv("ENVIRONMENT", "production")
+
+    async def _request() -> httpx.Response:
+        transport = httpx.ASGITransport(app=app_recommend.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            return await client.post(
+                "/ai/ingredient/recommondation",
+                json={
+                    "userIngredient": {"ingredients": ["김치"], "IngredientRatio": 0.5},
+                    "candidates": [],
+                },
+            )
+
+    response = asyncio.run(_request())
+
+    assert response.status_code == 401
+    assert response.json()["code"] == "AI401"

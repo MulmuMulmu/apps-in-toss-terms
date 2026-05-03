@@ -1,7 +1,7 @@
 import React, { useState, forwardRef, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
-import { getReportDetail, getReports, maskPost } from '../../../api/reports';
+import { getReportDetail, getReports, maskPost, updateReportStatus } from '../../../api/reports';
 import ReportItem from './ReportItem';
 import UserProcessModal from '../UserProcessModal/UserProcessModal';
 import PostDetailModal from '../PostDetailModal/PostDetailModal';
@@ -9,7 +9,7 @@ import { formatAdminUserLabel } from '../../../utils/adminUserDisplay';
 import styles from './ReportList.module.css';
 
 // 커스텀 입력 컴포넌트
-const CustomInput = forwardRef(({ value, onClick, inputText, setInputText, onDateSelect }, ref) => {
+const CustomInput = forwardRef(({ value, onClick, inputText, setInputText, onDateSelect, onInvalidDate }, ref) => {
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       const rawValue = inputText.replace(/\./g, ''); 
@@ -30,11 +30,11 @@ const CustomInput = forwardRef(({ value, onClick, inputText, setInputText, onDat
           onDateSelect(newDate);
           e.target.blur();
         } else {
-          setTimeout(() => alert('옳지 않은 값입니다.'), 10);
+          onInvalidDate();
           setInputText(value); // 기존값(달력 기준 값)으로 복원
         }
       } else {
-        setTimeout(() => alert('옳지 않은 값입니다.'), 10);
+        onInvalidDate();
         setInputText(value); // 기존값으로 복원
       }
     }
@@ -65,6 +65,7 @@ const ReportList = () => {
   const [currentReportArea, setCurrentReportArea] = useState('all');
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState('');
   
   // 모달 상태
   const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
@@ -131,7 +132,7 @@ const ReportList = () => {
   // 핸들러: 게시물 보기 모달 열기
   const handleOpenPostModal = (report) => {
     if (!report.shareId) {
-      alert('연관 게시물 정보를 불러올 수 없습니다.');
+      setActionMessage(`신고 ${report.reportId}: 연관 게시물 정보를 불러올 수 없습니다.`);
       return;
     }
     setSelectedReport(report);
@@ -147,17 +148,36 @@ const ReportList = () => {
   // 핸들러: 게시물 숨김 처리
   const handleMaskPost = async (report) => {
     if (report.reportType === 'CHAT') {
-      alert('채팅 신고는 사용자 처리에서 조치해주세요.');
+      setActionMessage(`신고 ${report.reportId}: 채팅 신고는 사용자 처리에서 조치해주세요.`);
       return;
     }
     if (!window.confirm(`'${report.content}' 게시물을 숨김 처리하시겠습니까?`)) return;
 
     const response = await maskPost(report.shareId);
     if (response.success) {
-      alert(response.result);
-      setReports((prevReports) => prevReports.filter((item) => item.shareId !== report.shareId));
+      setActionMessage(`신고 ${report.reportId}: ${response.result}`);
+      setReports((prevReports) => prevReports.map((item) => (
+        item.reportId === report.reportId ? { ...item, status: '완료' } : item
+      )));
     } else {
-      alert(response.result);
+      setActionMessage(`신고 ${report.reportId}: ${response.result}`);
+    }
+  };
+
+  const handleCompleteReport = async (report) => {
+    if (report.status === '완료') return;
+
+    const reportLabel = report.reportId || '선택한 신고';
+    if (!window.confirm(`신고 ${reportLabel} 처리 상태를 완료로 변경하시겠습니까?`)) return;
+
+    const response = await updateReportStatus(report.reportId);
+    if (response.success) {
+      setActionMessage(`신고 ${report.reportId}: ${response.result}`);
+      setReports((prevReports) => prevReports.map((item) => (
+        item.reportId === report.reportId ? { ...item, status: '완료' } : item
+      )));
+    } else {
+      setActionMessage(`신고 ${report.reportId}: ${response.result}`);
     }
   };
 
@@ -203,6 +223,7 @@ const ReportList = () => {
             inputText={inputText} 
             setInputText={setInputText} 
             onDateSelect={setSelectedDate} 
+            onInvalidDate={() => setActionMessage('날짜 형식은 YYYY.MM.DD이며 오늘 이전 날짜만 조회할 수 있습니다.')}
           />
         }
       />
@@ -229,6 +250,12 @@ const ReportList = () => {
         </button>
       </div>
 
+      {actionMessage && (
+        <div className={styles.actionMessage} role="status">
+          {actionMessage}
+        </div>
+      )}
+
       <div className={styles.list}>
         {loading ? (
           <div className={styles.loading}>로딩 중...</div>
@@ -237,6 +264,7 @@ const ReportList = () => {
             <ReportItem 
               key={report.reportId} 
               title={report.content} 
+              reportId={report.reportId}
               reporter={formatAdminUserLabel({
                 name: report.reporterName,
                 userId: report.reporterUserId,
@@ -249,9 +277,11 @@ const ReportList = () => {
               status={report.status}
               reportTypeLabel={report.reportTypeLabel}
               isChatReport={report.reportType === 'CHAT'}
+              hasSharePost={Boolean(report.shareId)}
               onProcessUser={() => handleOpenProcessModal(report)}
               onViewPost={() => handleOpenPostModal(report)}
               onMaskPost={() => handleMaskPost(report)}
+              onCompleteReport={() => handleCompleteReport(report)}
             />
           ))
         ) : (
@@ -263,6 +293,7 @@ const ReportList = () => {
       <UserProcessModal 
         isOpen={isProcessModalOpen}
         onClose={handleCloseModals}
+        onActionComplete={(message) => setActionMessage(`신고 ${selectedReport?.reportId || '-'}: ${message}`)}
         reportData={selectedReport}
       />
 

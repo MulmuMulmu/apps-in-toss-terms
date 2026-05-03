@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-const isDev = import.meta.env.DEV;
-const baseURL = import.meta.env.VITE_API_BASE_URL || (isDev ? 'http://localhost:8080' : undefined);
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'https://mulmumu-backend-aqjxa3obfa-du.a.run.app';
 
 const client = axios.create({
   baseURL,

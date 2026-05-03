@@ -12,7 +12,7 @@
 ## 인증
 
 - `POST /admin/auth/login`
-- Request: `{ "email": "mulmuAdmin", "password": "1234" }`
+- Request: `{ "email": "admin@example.com", "password": "<password>" }`
 - Response result: `{ "jwt": "..." }`
 
 ## 대시보드
@@ -26,6 +26,7 @@
 - `GET /admin/report/list?Date=yyyy-MM-dd&type=all|completed|notCompleted`
 - `GET /admin/report/one?reportId={uuid}`
 - `PATCH /admin/report/post/masking?shareId={uuid}`
+- `PATCH /admin/report/status?reportId={uuid}`
 - `PATCH /admin/report/users`
 - `GET /admin/shares/one?shareId={uuid}`
 

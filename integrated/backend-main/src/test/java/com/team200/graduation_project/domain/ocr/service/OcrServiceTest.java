@@ -77,7 +77,18 @@ class OcrServiceTest {
         OcrAnalyzeResponse aiResponse = new OcrAnalyzeResponse(
                 "2026-03-11",
                 List.of(
-                        new OcrAnalyzeResponse.FoodItem("우유", "유제품", 2),
+                        new OcrAnalyzeResponse.FoodItem(
+                                "우유",
+                                "서울우유 1L",
+                                "milk-id",
+                                "우유",
+                                "우유",
+                                "MAPPED",
+                                "receipt_rule_product_mapping",
+                                1.0,
+                                "유제품",
+                                2
+                        ),
                         new OcrAnalyzeResponse.FoodItem("양파", "채소/과일", null)
                 )
         );
@@ -108,6 +119,8 @@ class OcrServiceTest {
         assertThat(ingredientCaptor.getValue())
                 .extracting(OcrIngredient::getOcrIngredientName)
                 .containsExactly("우유", "양파");
+        assertThat(ingredientCaptor.getValue().get(0).getOriginalOcrIngredientName()).isEqualTo("서울우유 1L");
+        assertThat(ingredientCaptor.getValue().get(0).getNormalizedIngredientName()).isEqualTo("우유");
         assertThat(ingredientCaptor.getValue())
                 .extracting(OcrIngredient::getQuantity)
                 .containsExactly(2, 1);

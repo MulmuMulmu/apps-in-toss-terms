@@ -15,10 +15,16 @@ import java.util.List;
 @AllArgsConstructor
 public class ShareDetailResponseDTO {
     private String image;
+    private String sellerId;
     private String sellerName;
+    private String sellerProfileImageUrl;
     private String title;
+    private String ingredientName;
     private String category;
     private String content;
     private LocalDate expirationDate;
     private LocalDateTime createTime;
+    private String locationName;
+    private Double latitude;
+    private Double longitude;
 }

@@ -1,7 +1,9 @@
 package com.team200.graduation_project.domain.user.service;
 
 import com.team200.graduation_project.domain.user.dto.request.ChangePasswordRequest;
+import com.team200.graduation_project.domain.user.client.AppsInTossAccessRemovalClient;
 import com.team200.graduation_project.domain.user.client.AppsInTossLoginClient;
+import com.team200.graduation_project.domain.user.client.AppsInTossToken;
 import com.team200.graduation_project.domain.user.client.AppsInTossUserInfo;
 import com.team200.graduation_project.domain.user.dto.request.KakaoSignupRequest;
 import com.team200.graduation_project.domain.user.dto.request.LoginRequest;
@@ -25,6 +27,7 @@ import com.google.cloud.storage.Storage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +46,7 @@ public class UserService {
     private final JwtTokenService jwtTokenService;
     private final Storage storage;
     private final AppsInTossLoginClient appsInTossLoginClient;
+    private final AppsInTossAccessRemovalClient appsInTossAccessRemovalClient;
 
     @Value("${spring.cloud.gcp.storage.bucket}")
     private String bucketName;
@@ -197,7 +201,7 @@ public class UserService {
 
         User user = userRepository.findByTossUserKeyAndDeletedAtIsNull(userInfo.userKey())
                 .orElseGet(() -> createTossUser(userInfo));
-        user.updateAppsInTossLoginMetadata(userInfo.scope(), joinAgreedTerms(userInfo.agreedTerms()));
+        updateAppsInTossLoginMetadata(user, userInfo);
 
         if (user.getStatus() != UserStatus.NORMAL) {
             throw new UserException(UserErrorCode.USER_LOGIN_FAILED);
@@ -209,6 +213,13 @@ public class UserService {
 
     private User createTossUser(AppsInTossUserInfo userInfo) {
         String tossUserKey = userInfo.userKey();
+        userRepository.findByTossUserKey(tossUserKey)
+                .filter(existing -> existing.getStatus() != UserStatus.NORMAL || existing.getDeletedAt() != null)
+                .ifPresent(existing -> {
+                    existing.releaseAppsInTossLoginKey();
+                    userRepository.flush();
+                });
+
         String baseUserId = "toss_" + tossUserKey;
         String userId = baseUserId;
         int suffix = 1;
@@ -221,6 +232,9 @@ public class UserService {
                 .tossUserKey(tossUserKey)
                 .tossScope(userInfo.scope())
                 .tossAgreedTerms(joinAgreedTerms(userInfo.agreedTerms()))
+                .tossAccessToken(userInfo.accessToken())
+                .tossRefreshToken(userInfo.refreshToken())
+                .tossAccessTokenExpiresAt(accessTokenExpiresAt(userInfo.expiresIn()))
                 .password(null)
                 .nickName("토스사용자" + lastFour(tossUserKey))
                 .imageUrl("https://storage.googleapis.com/mulmumulmu_picture/profilePicture/%E1%84%86%E1%85%AE%E1%86%AF%E1%84%86%E1%85%AE%E1%84%86%E1%85%AE%E1%86%AF%E1%84%86%E1%85%AE%E1%84%83%E1%85%A2%E1%84%91%E1%85%AD%E1%84%89%E1%85%A1%E1%84%8C%E1%85%B5%E1%86%AB.png")
@@ -231,6 +245,23 @@ public class UserService {
                 .role(Role.USER)
                 .build();
         return userRepository.save(user);
+    }
+
+    private void updateAppsInTossLoginMetadata(User user, AppsInTossUserInfo userInfo) {
+        user.updateAppsInTossLoginMetadata(
+                userInfo.scope(),
+                joinAgreedTerms(userInfo.agreedTerms()),
+                userInfo.accessToken(),
+                userInfo.refreshToken(),
+                accessTokenExpiresAt(userInfo.expiresIn())
+        );
+    }
+
+    private LocalDateTime accessTokenExpiresAt(Long expiresIn) {
+        if (expiresIn == null || expiresIn <= 0) {
+            return null;
+        }
+        return LocalDateTime.now().plusSeconds(expiresIn);
     }
 
     private String joinAgreedTerms(List<String> agreedTerms) {
@@ -341,6 +372,7 @@ public class UserService {
     public String deleteAccount(String authorizationHeader) {
         try {
             User user = findUserFromAuthorizationHeader(authorizationHeader);
+            removeAppsInTossConnectionIfLinked(user);
             user.softDelete();
             return "회원탈퇴가 완료되었습니다.";
         } catch (UserException | GeneralException e) {
@@ -348,6 +380,46 @@ public class UserService {
         } catch (Exception e) {
             throw new UserException(UserErrorCode.USER_DELETION_FAILED);
         }
+    }
+
+    private void removeAppsInTossConnectionIfLinked(User user) {
+        if (!StringUtils.hasText(user.getTossUserKey())) {
+            return;
+        }
+        if (!StringUtils.hasText(user.getTossAccessToken())) {
+            throw new UserException(UserErrorCode.USER_DELETION_FAILED);
+        }
+        String accessToken = validAppsInTossAccessToken(user);
+        appsInTossAccessRemovalClient.removeByUserKey(accessToken, user.getTossUserKey());
+    }
+
+    private String validAppsInTossAccessToken(User user) {
+        if (user.getTossAccessTokenExpiresAt() == null
+                || user.getTossAccessTokenExpiresAt().isAfter(LocalDateTime.now().plusMinutes(1))) {
+            return user.getTossAccessToken();
+        }
+        if (!StringUtils.hasText(user.getTossRefreshToken())) {
+            throw new UserException(UserErrorCode.USER_DELETION_FAILED);
+        }
+        AppsInTossToken token = appsInTossLoginClient.refreshToken(user.getTossRefreshToken());
+        user.updateAppsInTossLoginMetadata(
+                user.getTossScope(),
+                user.getTossAgreedTerms(),
+                token.accessToken(),
+                token.refreshToken(),
+                accessTokenExpiresAt(token.expiresIn())
+        );
+        return token.accessToken();
+    }
+
+    @Transactional
+    public String handleAppsInTossUnlinkCallback(String userKey, String referrer) {
+        if (!StringUtils.hasText(userKey)) {
+            throw new UserException(UserErrorCode.USER_BAD_REQUEST);
+        }
+        userRepository.findByTossUserKey(userKey)
+                .ifPresent(User::releaseAppsInTossLoginKey);
+        return "토스 로그인 연결 해제 콜백이 처리되었습니다.";
     }
 
     @Transactional(readOnly = true)

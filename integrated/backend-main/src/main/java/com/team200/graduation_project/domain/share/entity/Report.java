@@ -44,4 +44,8 @@ public class Report {
     protected void onCreate() {
         createTime = LocalDateTime.now();
     }
+
+    public void complete() {
+        status = ReportStatus.COMPLETED;
+    }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "mulmumulmu-apps-in-toss-miniapp",
+  "name": "mulmumulmu-tds-webview",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,7 +8,10 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "ait:build": "ait build",
+    "test:ait-root-contract": "node ./scripts/test-ait-root-contract.mjs",
+    "test:full-webview-port": "node ./scripts/test-full-webview-port.mjs",
     "test:domain": "node ./scripts/test-domain.mjs",
+    "test:entry-wrapper": "node ./scripts/test-entry-wrapper.mjs",
     "typecheck": "node ./node_modules/typescript/bin/tsc --noEmit"
   },
   "dependencies": {

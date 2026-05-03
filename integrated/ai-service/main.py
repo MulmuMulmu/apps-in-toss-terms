@@ -118,13 +118,16 @@ _RECEIPT_RULES = None
 _SHARING_FILTER = None
 _INGREDIENT_PREDICTION_SERVICE = None
 _QUALITY_MONITOR = None
+MAX_SHARING_CHECK_ITEMS = 200
+MAX_PREDICTION_BATCH_ITEMS = 200
+MAX_OCR_UPLOAD_BYTES = 8 * 1024 * 1024
 
 # ═══════════════════════════════════════════════════════════════
 #  Pydantic 스키마
 # ═══════════════════════════════════════════════════════════════
 
 class SharingCheckRequest(BaseModel):
-    item_names: List[str] = Field(..., min_length=1)
+    item_names: List[str] = Field(..., min_length=1, max_length=MAX_SHARING_CHECK_ITEMS)
 
 
 class ExpiryRequest(BaseModel):
@@ -136,7 +139,7 @@ class ExpiryRequest(BaseModel):
 
 class PredictionBatchRequest(BaseModel):
     purchaseDate: str = Field(..., examples=["2026-04-09"])
-    ingredients: List[Any] = Field(..., examples=[["배추", "당근", "상추"]])
+    ingredients: List[Any] = Field(..., max_length=MAX_PREDICTION_BATCH_ITEMS, examples=[["배추", "당근", "상추"]])
 
 
 class PredictionIngredientResult(BaseModel):
@@ -578,6 +581,9 @@ def _normalize_food_item(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 "mapping_confidence": ingredient_match["similarity"],
             }
         )
+    for field_name in ("source_line_ids", "needs_review", "review_reason", "notes", "box"):
+        if field_name in item:
+            normalized_item[field_name] = item[field_name]
 
     quantity = _normalize_public_quantity(item)
     if quantity is not None:
@@ -752,6 +758,9 @@ def _legacy_food_items_from_parsed(parsed: Dict[str, Any]) -> list[Dict[str, Any
                 "normalized_name": item.get("normalized_name"),
                 "category": item.get("category"),
                 "quantity": item.get("quantity"),
+                "source_line_ids": item.get("source_line_ids", []),
+                "needs_review": item.get("needs_review", False),
+                "review_reason": item.get("review_reason", []),
             }
         )
     return _normalize_food_items(legacy_items)
@@ -927,9 +936,15 @@ async def ocr_receipt(
             detail={"code": "INVALID_IMAGE", "message": "jpg, png 파일만 지원합니다."},
         )
 
+    content = await image.read(MAX_OCR_UPLOAD_BYTES + 1)
+    if len(content) > MAX_OCR_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail={"code": "REQUEST_TOO_LARGE", "message": "이미지 파일이 너무 큽니다."},
+        )
+
     suffix = ".jpg" if "jpeg" in (image.content_type or "") else ".png"
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        content = await image.read()
         tmp.write(content)
         tmp_path = tmp.name
 

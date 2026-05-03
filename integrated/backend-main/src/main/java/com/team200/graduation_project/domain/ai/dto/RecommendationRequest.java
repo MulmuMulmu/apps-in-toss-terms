@@ -1,6 +1,7 @@
 package com.team200.graduation_project.domain.ai.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.util.List;
 
 public record RecommendationRequest(
@@ -9,6 +10,7 @@ public record RecommendationRequest(
 ) {
     public record UserIngredient(
             List<String> ingredients,
+            List<String> allergies,
             List<String> preferIngredients,
             List<String> dispreferIngredients,
             @JsonProperty("IngredientRatio")
@@ -17,6 +19,7 @@ public record RecommendationRequest(
     }
 
     public record Candidate(
+            @JsonAlias("recipeId")
             String recipe_id,
             String title,
             List<String> ingredients

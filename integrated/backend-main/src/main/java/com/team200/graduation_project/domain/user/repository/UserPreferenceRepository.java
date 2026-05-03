@@ -3,6 +3,7 @@ package com.team200.graduation_project.domain.user.repository;
 
 import com.team200.graduation_project.domain.user.entity.User;
 import com.team200.graduation_project.domain.user.entity.UserPreference;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -12,4 +13,6 @@ public interface UserPreferenceRepository extends JpaRepository<UserPreference, 
     void deleteByUser(User user);
 
     void deleteByUserAndType(User user, String type);
+
+    List<UserPreference> findByUser(User user);
 }

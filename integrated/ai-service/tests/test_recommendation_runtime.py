@@ -62,6 +62,70 @@ def test_recommondation_excludes_dispreferred_candidates() -> None:
     assert response.json()["data"]["recommendations"] == []
 
 
+def test_recommondation_accepts_recipe_id_alias_and_excludes_allergies() -> None:
+    async def _request() -> httpx.Response:
+        transport = httpx.ASGITransport(app=app_recommend.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            return await client.post(
+                "/ai/ingredient/recommondation",
+                json={
+                    "userIngredient": {
+                        "ingredients": ["김치"],
+                        "allergies": ["우유"],
+                        "IngredientRatio": 0.5,
+                    },
+                    "candidates": [
+                        {
+                            "recipeId": "recipe-milk",
+                            "title": "우유 김치 요리",
+                            "ingredients": ["김치", "우유"],
+                        },
+                        {
+                            "recipeId": "recipe-kimchi",
+                            "title": "김치무침",
+                            "ingredients": ["김치", "고춧가루"],
+                        },
+                    ],
+                },
+            )
+
+    response = asyncio.run(_request())
+
+    assert response.status_code == 200
+    recommendations = response.json()["data"]["recommendations"]
+    assert [item["recipeId"] for item in recommendations] == ["recipe-kimchi"]
+
+
+def test_recommondation_treats_null_preference_lists_as_empty() -> None:
+    async def _request() -> httpx.Response:
+        transport = httpx.ASGITransport(app=app_recommend.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            return await client.post(
+                "/ai/ingredient/recommondation",
+                json={
+                    "userIngredient": {
+                        "ingredients": ["김치"],
+                        "allergies": None,
+                        "preferIngredients": None,
+                        "dispreferIngredients": None,
+                        "IngredientRatio": 0.5,
+                    },
+                    "candidates": [
+                        {
+                            "recipe_id": "recipe-kimchi",
+                            "title": "김치무침",
+                            "ingredients": ["김치", "고춧가루"],
+                        },
+                    ],
+                },
+            )
+
+    response = asyncio.run(_request())
+
+    assert response.status_code == 200
+    assert response.json()["data"]["recommendations"][0]["recipeId"] == "recipe-kimchi"
+
+
 def test_recommondation_preference_boost_affects_order() -> None:
     async def _request() -> httpx.Response:
         transport = httpx.ASGITransport(app=app_recommend.app)

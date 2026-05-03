@@ -2,7 +2,7 @@ import { processUserPenalty } from '../../../api/userManagement';
 import { formatAdminUserLabel } from '../../../utils/adminUserDisplay';
 import styles from './UserProcessModal.module.css';
 
-const UserProcessModal = ({ isOpen, onClose, reportData }) => {
+const UserProcessModal = ({ isOpen, onClose, onActionComplete, reportData }) => {
   if (!isOpen || !reportData) return null;
 
   const targetUserId = reportData.targetId || reportData.reportedUserId;
@@ -18,7 +18,7 @@ const UserProcessModal = ({ isOpen, onClose, reportData }) => {
     if (!window.confirm(confirmMsg)) return;
 
     if (!targetTossUserKey && !targetUserId) {
-      alert('처리 대상 사용자 정보를 불러올 수 없습니다.');
+      onActionComplete?.('처리 대상 사용자 정보를 불러올 수 없습니다.');
       return;
     }
 
@@ -29,10 +29,10 @@ const UserProcessModal = ({ isOpen, onClose, reportData }) => {
     });
 
     if (response.success) {
-      alert(response.result);
+      onActionComplete?.(response.result);
       onClose(); // 성공 시 모달 닫기
     } else {
-      alert(response.result);
+      onActionComplete?.(response.result);
     }
   };
 

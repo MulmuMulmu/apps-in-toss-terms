@@ -61,4 +61,16 @@ public class UserIngredient {
     public void updateUser(User user) {
         this.user = user;
     }
+
+    public void updateOwnedIngredient(
+            Ingredient ingredient,
+            LocalDate purchaseDate,
+            LocalDate expirationDate,
+            UserIngredientStatus status
+    ) {
+        this.ingredient = ingredient;
+        this.purchaseDate = purchaseDate;
+        this.expirationDate = expirationDate;
+        this.status = status;
+    }
 }

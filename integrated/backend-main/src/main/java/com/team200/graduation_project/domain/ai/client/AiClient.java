@@ -55,7 +55,7 @@ public class AiClient {
             body.add("image", new MultipartImageResource(image));
 
             ResponseEntity<JsonNode> response = restTemplate.postForEntity(
-                    ocrBaseUrl + "/ai/ocr/analyze",
+                    ocrBaseUrl + "/ai/ocr/analyze?debug=true",
                     new HttpEntity<>(body, headers),
                     JsonNode.class
             );

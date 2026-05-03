@@ -12,6 +12,8 @@ import com.team200.graduation_project.domain.recipe.repository.RecipeRepository;
 import com.team200.graduation_project.domain.recipe.repository.RecipeStepRepository;
 import com.team200.graduation_project.global.apiPayload.ApiResponse;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +30,8 @@ import org.springframework.util.StringUtils;
 @Service
 @RequiredArgsConstructor
 public class RecipeService {
+
+    private static final int MAX_AI_RECOMMENDATION_CANDIDATES = 500;
 
     private final AiClient aiClient;
     private final RecipeRepository recipeRepository;
@@ -105,9 +109,71 @@ public class RecipeService {
                         ingredientNames(ingredientsByRecipeId.get(recipe.getRecipeId()))
                 ))
                 .filter(candidate -> !candidate.ingredients().isEmpty())
+                .sorted(Comparator.comparingInt((RecommendationRequest.Candidate candidate) ->
+                        recommendationCandidateScore(request.userIngredient(), candidate)
+                ).reversed())
+                .limit(MAX_AI_RECOMMENDATION_CANDIDATES)
                 .toList();
 
         return new RecommendationRequest(request.userIngredient(), candidates);
+    }
+
+    private int recommendationCandidateScore(
+            RecommendationRequest.UserIngredient userIngredient,
+            RecommendationRequest.Candidate candidate
+    ) {
+        Set<String> owned = normalizedSet(userIngredient == null ? null : userIngredient.ingredients());
+        Set<String> preferred = normalizedSet(userIngredient == null ? null : userIngredient.preferIngredients());
+        Set<String> hardExcluded = new HashSet<>(normalizedSet(userIngredient == null ? null : userIngredient.dispreferIngredients()));
+        hardExcluded.addAll(normalizedSet(userIngredient == null ? null : userIngredient.allergies()));
+
+        int score = 0;
+        for (String ingredient : candidate.ingredients()) {
+            String normalizedIngredient = normalizeRecommendationTerm(ingredient);
+            if (normalizedIngredient.isBlank()) {
+                continue;
+            }
+            if (containsRelatedTerm(hardExcluded, normalizedIngredient)) {
+                score -= 1000;
+            }
+            if (containsRelatedTerm(owned, normalizedIngredient)) {
+                score += 10;
+            }
+            if (containsRelatedTerm(preferred, normalizedIngredient)) {
+                score += 3;
+            }
+        }
+        if (containsRelatedTerm(hardExcluded, normalizeRecommendationTerm(candidate.title()))) {
+            score -= 1000;
+        }
+        return score;
+    }
+
+    private Set<String> normalizedSet(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return Set.of();
+        }
+        return values.stream()
+                .map(this::normalizeRecommendationTerm)
+                .filter(term -> !term.isBlank())
+                .collect(Collectors.toSet());
+    }
+
+    private boolean containsRelatedTerm(Set<String> terms, String candidateTerm) {
+        if (terms == null || terms.isEmpty() || candidateTerm.isBlank()) {
+            return false;
+        }
+        return terms.stream()
+                .anyMatch(term -> term.equals(candidateTerm)
+                        || term.contains(candidateTerm)
+                        || candidateTerm.contains(term));
+    }
+
+    private String normalizeRecommendationTerm(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replaceAll("\\s+", "").trim().toLowerCase();
     }
 
     private Map<UUID, List<RecipeIngredient>> loadIngredientsByRecipeId(List<Recipe> recipes) {
