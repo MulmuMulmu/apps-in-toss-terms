@@ -325,7 +325,7 @@ public class ShareService {
         validateBrowseCoordinates(myLat, myLon);
         Set<UUID> hiddenShareIds = shareHiddenPostRepository.findHiddenShareIdsByUser(currentUser);
 
-        List<ShareWithDistance> filteredShares = shareRepository.findVisibleSharesWithPosterLocation(currentUser).stream()
+        List<ShareWithDistance> filteredShares = shareRepository.findVisibleSharesWithPosterLocation().stream()
                 .map(row -> {
                     Share share = (Share) row[0];
                     if (hiddenShareIds.contains(share.getShareId())) return null;
@@ -357,7 +357,9 @@ public class ShareService {
                             firstImageUrl,
                             swd.displayAddress,
                             swd.posterLocation.getLatitude(),
-                            swd.posterLocation.getLongitude()
+                            swd.posterLocation.getLongitude(),
+                            swd.share.getUser() != null
+                                    && swd.share.getUser().getUserId().equals(currentUser.getUserId())
                     );
                 })
                 .toList();

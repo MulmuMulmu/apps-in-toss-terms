@@ -15,6 +15,8 @@ WORKDIR /app
 COPY --from=build /workspace/build/libs/*.jar app.jar
 
 ENV PORT=8080
+ENV TZ=Asia/Seoul
+ENV JAVA_TOOL_OPTIONS="-Duser.timezone=Asia/Seoul"
 EXPOSE 8080
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

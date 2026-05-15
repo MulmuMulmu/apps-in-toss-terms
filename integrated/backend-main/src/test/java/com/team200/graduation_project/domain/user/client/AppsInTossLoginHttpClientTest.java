@@ -54,7 +54,7 @@ class AppsInTossLoginHttpClientTest {
         AppsInTossUserInfo result = client.login("auth-code", "SANDBOX");
 
         assertThat(result.userKey()).isEqualTo("443731104");
-        assertThat(result.scope()).isEqualTo("user_name,user_gender");
+        assertThat(result.scope()).isEqualTo("user_name");
         assertThat(result.agreedTerms()).containsExactly("service_terms", "marketing_optional");
         assertThat(result.accessToken()).isEqualTo("access-token");
         assertThat(result.refreshToken()).isEqualTo("refresh-token");
@@ -101,7 +101,7 @@ class AppsInTossLoginHttpClientTest {
                   "success": {
                     "accessToken": "access-token",
                     "refreshToken": "refresh-token",
-                    "scope": "user_name,user_gender",
+                    "scope": "user_name",
                     "expiresIn": 3599
                   }
                 }
@@ -118,7 +118,7 @@ class AppsInTossLoginHttpClientTest {
                   "resultType": "SUCCESS",
                   "success": {
                     "userKey": 443731104,
-                    "scope": "user_name,user_gender",
+                    "scope": "user_name",
                     "agreedTerms": ["service_terms", "marketing_optional"]
                   }
                 }

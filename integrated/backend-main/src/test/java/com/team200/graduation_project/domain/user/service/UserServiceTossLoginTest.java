@@ -76,7 +76,7 @@ class UserServiceTossLoginTest {
         when(appsInTossLoginClient.login("code-123", "DEFAULT"))
                 .thenReturn(new AppsInTossUserInfo(
                         "443731104",
-                        "user_name,user_gender",
+                        "user_name",
                         java.util.List.of("service_terms"),
                         "toss-access-token",
                         "toss-refresh-token",
@@ -101,7 +101,7 @@ class UserServiceTossLoginTest {
         User saved = captor.getValue();
         assertThat(saved.getUserId()).isEqualTo("toss_443731104");
         assertThat(saved.getTossUserKey()).isEqualTo("443731104");
-        assertThat(saved.getTossScope()).isEqualTo("user_name,user_gender");
+        assertThat(saved.getTossScope()).isEqualTo("user_name");
         assertThat(saved.getTossAgreedTerms()).isEqualTo("service_terms");
         assertThat(saved.getTossAccessToken()).isEqualTo("toss-access-token");
         assertThat(saved.getTossRefreshToken()).isEqualTo("toss-refresh-token");

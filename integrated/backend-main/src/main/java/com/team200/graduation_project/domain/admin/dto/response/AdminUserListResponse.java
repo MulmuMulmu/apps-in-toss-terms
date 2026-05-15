@@ -20,4 +20,8 @@ public class AdminUserListResponse {
     private Long totalIngredient;
     private Long totalOcr;
     private Long totalShare;
+
+    public Long getTotalWarning() {
+        return totalWarming;
+    }
 }

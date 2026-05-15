@@ -41,5 +41,6 @@ public class ShareListResponseDTO {
         private Double longitude;
         private String image;
         private LocalDateTime createdAt;
+        private Boolean isMine;
     }
 }

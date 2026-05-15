@@ -60,7 +60,7 @@ public class ShareConverter {
                 .build();
     }
 
-    public ShareListResponseDTO.ShareItemDTO toShareItemDTO(Share share, Double distance, String imageUrl, String displayAddress, Double latitude, Double longitude) {
+    public ShareListResponseDTO.ShareItemDTO toShareItemDTO(Share share, Double distance, String imageUrl, String displayAddress, Double latitude, Double longitude, boolean isMine) {
         String ingredientName = share.getUserIngredient() != null && share.getUserIngredient().getIngredient() != null
                 ? share.getUserIngredient().getIngredient().getIngredientName()
                 : null;
@@ -79,6 +79,7 @@ public class ShareConverter {
                 .longitude(longitude)
                 .image(imageUrl)
                 .createdAt(share.getCreateTime())
+                .isMine(isMine)
                 .build();
     }
 

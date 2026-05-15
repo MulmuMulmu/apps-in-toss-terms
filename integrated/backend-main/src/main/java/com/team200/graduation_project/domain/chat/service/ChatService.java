@@ -67,7 +67,7 @@ public class ChatService {
         }
 
         if (share.getUser().getUserId().equals(sender.getUserId())) {
-            throw new GeneralException(GeneralErrorCode.BAD_REQUEST);
+            throw new GeneralException(GeneralErrorCode.CHAT_SELF_NOT_ALLOWED);
         }
 
         Optional<ChatRoom> existingRoom = chatRoomRepository.findByShareAndSender(share, sender);

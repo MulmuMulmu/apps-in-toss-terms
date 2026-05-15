@@ -30,10 +30,9 @@ public interface ShareRepository extends JpaRepository<Share, UUID> {
             WHERE s.deletedAt IS NULL
               AND s.isView = true
               AND s.status = com.team200.graduation_project.domain.share.entity.ShareStatus.AVAILABLE
-              AND u <> :currentUser
             ORDER BY s.createTime DESC
             """)
-    List<Object[]> findVisibleSharesWithPosterLocation(User currentUser);
+    List<Object[]> findVisibleSharesWithPosterLocation();
 
     @Query("SELECT s FROM Share s JOIN FETCH s.user LEFT JOIN FETCH s.sharePicture WHERE s.shareId = :shareId AND s.deletedAt IS NULL")
     java.util.Optional<Share> findWithUserByShareId(UUID shareId);

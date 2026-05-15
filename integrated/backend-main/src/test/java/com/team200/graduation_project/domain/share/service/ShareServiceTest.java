@@ -304,7 +304,7 @@ class ShareServiceTest {
         mockAuth(user);
         when(locationRepository.findByUser(user)).thenReturn(Optional.of(myLocation));
         when(shareHiddenPostRepository.findHiddenShareIdsByUser(user)).thenReturn(Set.of(hiddenShare.getShareId()));
-        when(shareRepository.findVisibleSharesWithPosterLocation(user)).thenReturn(List.of(
+        when(shareRepository.findVisibleSharesWithPosterLocation()).thenReturn(List.of(
                 new Object[]{hiddenShare, posterLocation},
                 new Object[]{visibleShare, posterLocation}
         ));
@@ -317,7 +317,8 @@ class ShareServiceTest {
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.anyDouble(),
-                org.mockito.ArgumentMatchers.anyDouble()
+                org.mockito.ArgumentMatchers.anyDouble(),
+                org.mockito.ArgumentMatchers.anyBoolean()
         );
         verify(shareConverter).toShareItemDTO(
                 org.mockito.ArgumentMatchers.eq(visibleShare),
@@ -325,7 +326,8 @@ class ShareServiceTest {
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.anyDouble(),
-                org.mockito.ArgumentMatchers.anyDouble()
+                org.mockito.ArgumentMatchers.anyDouble(),
+                org.mockito.ArgumentMatchers.eq(false)
         );
     }
 
@@ -346,7 +348,7 @@ class ShareServiceTest {
         mockAuth(user);
         when(locationRepository.findByUser(user)).thenReturn(Optional.of(savedLocation));
         when(shareHiddenPostRepository.findHiddenShareIdsByUser(user)).thenReturn(Set.of());
-        when(shareRepository.findVisibleSharesWithPosterLocation(user)).thenReturn(List.<Object[]>of(new Object[]{share, browsePosterLocation}));
+        when(shareRepository.findVisibleSharesWithPosterLocation()).thenReturn(List.<Object[]>of(new Object[]{share, browsePosterLocation}));
 
         shareService.getShareList("Bearer token", 3.0, 0, 10, 35.1796, 129.0756);
 
@@ -356,7 +358,8 @@ class ShareServiceTest {
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.anyDouble(),
-                org.mockito.ArgumentMatchers.anyDouble()
+                org.mockito.ArgumentMatchers.anyDouble(),
+                org.mockito.ArgumentMatchers.eq(false)
         );
         verify(locationRepository, never()).save(any());
     }

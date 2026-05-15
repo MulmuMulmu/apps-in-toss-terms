@@ -34,6 +34,8 @@ public enum GeneralErrorCode {
             "COMMON500", "위치를 불러올 수 없습니다."),
     LOCATION_VERIFICATION_FAILED(HttpStatus.BAD_REQUEST,
             "LOCATION400", "현재 위치와 선택한 동네가 일치하지 않습니다."),
+    CHAT_SELF_NOT_ALLOWED(HttpStatus.BAD_REQUEST,
+            "CHAT400", "내가 작성한 나눔글에는 채팅할 수 없습니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR,
             "COMMON500", "예기치 않은 서버 에러가 발생했습니다."),
     INGREDIENT_NOT_FOUNDED(HttpStatus.BAD_REQUEST,"COMMON400","식재료 db에 식품을 찾을 수 없습니다."),
